@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
@@ -28,6 +27,3 @@ def init_db():
     """Initialize database - create all tables"""
     from app.models import Base
     Base.metadata.create_all(bind=engine)
-=======
-Šjh®Ú,~º&²©Z•È^›(¦¦Šír·šµïÞž§yúèšÊ¥jW!zl{uç%j¶­Š÷¢šš+µ×œ•ªÚ¶+Þý¶¬yúè˜
->>>>>>> deb6bafe0753c7e3a96e968ebc975ee01ebcbf94

@@ -22,7 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-<<<<<<< HEAD
 
 # Python
 __pycache__/
@@ -69,5 +68,3 @@ wheels/
 # OS
 .DS_Store
 Thumbs.db
-=======
->>>>>>> deb6bafe0753c7e3a96e968ebc975ee01ebcbf94

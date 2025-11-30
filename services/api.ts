@@ -49,11 +49,7 @@ export const api = {
   verify: (data: any) => request("/users/verify", { method: "POST", body: JSON.stringify(data) }),
   resendVerifyCode: (email: string) => request("/users/resend-verification", { method: "POST", body: JSON.stringify({ email }) }),
   login: (data: any) => request<AuthResponse>("/users/login", { method: "POST", body: JSON.stringify(data) }),
-<<<<<<< HEAD
   forgotPassword: (email: string) => request("/users/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
-=======
-  forgotPassword: (email: string) => request("/users/forgot-password", { method: "POST", body: JSON.stringify(email) }), // Fixed: backend expects just the string body in some implementations or wrapped json? Assuming previous fix. Let's send object to be safe based on schema.
->>>>>>> deb6bafe0753c7e3a96e968ebc975ee01ebcbf94
   resetPassword: (data: any) => request("/users/reset-password", { method: "POST", body: JSON.stringify(data) }),
   changePassword: (data: any) => request("/users/change-password", { method: "POST", body: JSON.stringify(data) }),
   getMe: () => request<User>("/users/me"),

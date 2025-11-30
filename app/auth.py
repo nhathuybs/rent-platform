@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -68,6 +67,3 @@ def generate_verification_code() -> str:
 def generate_reset_code() -> str:
     """Generate a 6-digit reset code"""
     return ''.join([str(secrets.randbelow(10)) for _ in range(6)])
-=======
-~º&u«^¶)ž
->>>>>>> deb6bafe0753c7e3a96e968ebc975ee01ebcbf94

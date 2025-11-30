@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 import pyotp
@@ -59,6 +58,3 @@ async def calc_otp(secret: str = Query(...)):
         return CalcOtpResponse(otp=otp)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid OTP secret: {str(e)}")
-=======
-~º&}«-j˜¢šš+´ÈF‹­z
->>>>>>> deb6bafe0753c7e3a96e968ebc975ee01ebcbf94

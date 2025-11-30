@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import smtplib
 import os
 from email.mime.text import MIMEText
@@ -96,6 +95,3 @@ def send_reset_password_email(email: str, code: str) -> bool:
     </html>
     """
     return send_email(email, subject, body)
-=======
-Šjh®Û&¶™bmúè™éšŠŠgµìmŠjh®Ó0DÞÆ×ë¢g¦j)
->>>>>>> deb6bafe0753c7e3a96e968ebc975ee01ebcbf94

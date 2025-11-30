@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -198,6 +197,3 @@ async def change_password(
     db.commit()
     
     return MessageResponse(message="Password changed successfully")
-=======
-~º&
->>>>>>> deb6bafe0753c7e3a96e968ebc975ee01ebcbf94

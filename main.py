@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db
@@ -42,7 +41,3 @@ async def health():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-=======
-~º&}«-j˜¢šš+´V¬´È~º&}«-j˜š']•ì­¢»"šš+´#‘HÈvW°j·Ÿ®‰¬ªV¥r¦Ì
-+š)©¢»RzË"¢wë¢f©¤Zµ¦Ú±è¦¦ŠíŠx­
->>>>>>> deb6bafe0753c7e3a96e968ebc975ee01ebcbf94
