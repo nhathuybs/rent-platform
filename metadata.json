@@ -1,0 +1,5 @@
+{
+  "name": "Rent Platform Pro",
+  "description": "A professional rental platform management system with authentication, product listings, order history, and 2FA OTP retrieval.",
+  "requestFramePermissions": []
+}

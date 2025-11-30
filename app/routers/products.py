@@ -1,0 +1,64 @@
+<<<<<<< HEAD
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+import pyotp
+from app.database import get_db
+from app.models import Product
+from app.schemas import ProductCreate, ProductResponse, CalcOtpResponse, MessageResponse
+from app.routers.users import get_current_user_dep
+from app.models import User
+
+router = APIRouter(prefix="/products", tags=["products"])
+
+
+@router.get("/list", response_model=list[ProductResponse])
+async def list_products(db: Session = Depends(get_db)):
+    """Get list of all products (public endpoint)"""
+    products = db.query(Product).all()
+    return [ProductResponse(
+        id=p.id,
+        name=p.name,
+        price=p.price,
+        quantity=p.quantity,
+        duration=p.duration
+    ) for p in products]
+
+
+@router.post("/add", response_model=MessageResponse)
+async def add_product(
+    product_data: ProductCreate,
+    current_user: User = Depends(get_current_user_dep),
+    db: Session = Depends(get_db)
+):
+    """Add a new product (admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    new_product = Product(
+        name=product_data.name,
+        price=product_data.price,
+        quantity=product_data.quantity,
+        duration=product_data.duration,
+        account_info=product_data.account,
+        password_info=product_data.password,
+        otp_secret=product_data.otp_secret
+    )
+    
+    db.add(new_product)
+    db.commit()
+    
+    return MessageResponse(message="Product added successfully")
+
+
+@router.get("/calc-otp", response_model=CalcOtpResponse)
+async def calc_otp(secret: str = Query(...)):
+    """Calculate OTP from secret key"""
+    try:
+        totp = pyotp.TOTP(secret)
+        otp = totp.now()
+        return CalcOtpResponse(otp=otp)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid OTP secret: {str(e)}")
+=======
+~º&}«-j˜¢šš+´ÈF‹­z
+>>>>>>> deb6bafe0753c7e3a96e968ebc975ee01ebcbf94
