@@ -13,9 +13,9 @@ interface AuthContextType {
   loading: boolean;
 }
 
-const AuthContext = React.createContext<AuthContextType>(null!);
+export const AuthContext = React.createContext<AuthContextType>(null!);
 
-const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
   const [loading, setLoading] = useState(true);
@@ -484,8 +484,28 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return <>{children}</>;
 };
 
-// --- APP COMPONENT ---
-const App: React.FC = () => {
+// --- MAIN APP COMPONENT ---
+export function App() {
+  const { token } = useAuth();
+
+  // Redirect logic based on auth state
+  if (!token) {
+    return (
+      <HashRouter>
+        <Routes>
+          <Route path="/login" element={<AuthPage mode="login" />} />
+          <Route path="/register" element={<AuthPage mode="register" />} />
+          <Route path="/verify" element={<AuthPage mode="verify" />} />
+          <Route path="/forgot-password" element={<AuthPage mode="forgot" />} />
+          <Route path="/reset" element={<AuthPage mode="reset" />} />
+          
+          <Route path="/" element={<Navigate to="/login" />} />
+          <Route path="*" element={<Navigate to="/login" />} />
+        </Routes>
+      </HashRouter>
+    );
+  }
+
   return (
     <AuthProvider>
       <HashRouter>
