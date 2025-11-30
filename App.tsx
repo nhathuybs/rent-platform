@@ -52,6 +52,14 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     fetchUser();
   }, [fetchUser]);
 
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="text-2xl font-semibold">Đang tải...</div>
+      </div>
+    );
+  }
+
   return (
     <AuthContext.Provider value={{ user, token, login, logout, loading }}>
       {children}
