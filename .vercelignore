@@ -1,0 +1,19 @@
+# Ignore backend files when deploying to Vercel
+main.py
+app/
+requirements.txt
+create_admin.py
+render.yaml
+*.py
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+*.db
+*.sqlite
+*.sqlite3
+
