@@ -3,6 +3,7 @@ import os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional
+from fastapi import HTTPException
 
 
 def send_email(to_email: str, subject: str, body: str) -> bool:
@@ -25,13 +26,13 @@ def send_email(to_email: str, subject: str, body: str) -> bool:
         print("=" * 60)
         return True  # Return True so the flow continues
 
-from fastapi import HTTPException
-
-# ... (existing code) ...
-
     try:
         msg = MIMEMultipart()
-        # ... (existing code) ...
+        msg['From'] = smtp_from
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'html'))
+
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
             server.login(smtp_user, smtp_password)
