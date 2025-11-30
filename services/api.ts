@@ -2,7 +2,7 @@ import { AuthResponse, User, Product, Order } from '../types';
 
 // --- CẤU HÌNH ĐỊA CHỈ SERVER ---
 // Mặc định là localhost. Khi deploy, bạn sẽ sửa dòng này thành URL của Backend trên Render.
-export const API_BASE = "https://rent-platform-1.onrender.com/"; 
+export const API_BASE = "https://rent-platform-1.onrender.com"; 
 // Ví dụ sau khi deploy backend xong: 
 // export const API_BASE = "https://rent-app-backend.onrender.com";
 
