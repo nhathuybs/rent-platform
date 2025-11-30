@@ -14,9 +14,15 @@ app = FastAPI(
 )
 
 # CORS middleware - allow frontend to access API
+origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://nhathuybs.github.io",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific frontend URL
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -25,13 +25,13 @@ def send_email(to_email: str, subject: str, body: str) -> bool:
         print("=" * 60)
         return True  # Return True so the flow continues
 
+from fastapi import HTTPException
+
+# ... (existing code) ...
+
     try:
         msg = MIMEMultipart()
-        msg['From'] = smtp_from
-        msg['To'] = to_email
-        msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'html'))
-
+        # ... (existing code) ...
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
             server.login(smtp_user, smtp_password)
@@ -40,13 +40,9 @@ def send_email(to_email: str, subject: str, body: str) -> bool:
         return True
     except Exception as e:
         print(f"Failed to send email: {e}")
-        # Still log to console as fallback
-        print("=" * 60)
-        print(f"EMAIL SEND FAILED - Would send email to: {to_email}")
-        print(f"Subject: {subject}")
-        print(f"Body:\n{body}")
-        print("=" * 60)
-        return False
+        # Reraise as HTTPException to notify FastAPI
+        raise HTTPException(status_code=500, detail="Failed to send verification email.")
+
 
 
 def send_verification_email(email: str, code: str) -> bool:
