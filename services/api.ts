@@ -14,13 +14,13 @@ const getToken = () => localStorage.getItem("token");
 // Generic fetch wrapper
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
-  const headers: HeadersInit = {
+  const headers = new Headers({
     "Content-Type": "application/json",
-    ...(options.headers || {}),
-  };
+    ...options.headers,
+  });
 
   if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   const response = await fetch(`${API_BASE}${endpoint}`, {

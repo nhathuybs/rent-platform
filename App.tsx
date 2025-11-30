@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
 import { api } from './services/api';
 import { User, Product, Order } from './types';
-import { Navbar, Button, Input, Icons, Modal } from './components/Layout';
+import { Navbar, Button, Input, Icons } from './components/Layout';
 
 // --- CONTEXT ---
 interface AuthContextType {
