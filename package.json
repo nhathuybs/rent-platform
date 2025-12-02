@@ -2,14 +2,11 @@
   "name": "rent-platform-frontend",
   "private": true,
   "version": "1.0.0",
-  "homepage": "https://nhathuybs.github.io/rent-platform",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build -c vite.config.deploy.js",
-    "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "^18.2.0",

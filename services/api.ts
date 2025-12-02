@@ -1,8 +1,10 @@
 import { AuthResponse, User, Product, Order } from '../types';
 
 // --- CẤU HÌNH ĐỊA CHỈ SERVER ---
-// Mặc định là localhost. Khi deploy, bạn sẽ sửa dòng này thành URL của Backend trên Render.
-export const API_BASE = "https://rent-platform-1.onrender.com"; 
+// URL của backend sẽ được lấy từ biến môi trường VITE_API_BASE.
+// Khi deploy, bạn sẽ đặt biến này trong cài đặt của Cloudflare Pages.
+// Khi chạy local, bạn có thể tạo file .env và đặt VITE_API_BASE=http://localhost:8000
+export const API_BASE = import.meta.env.VITE_API_BASE || "https://rent-platform-1.onrender.com"; 
 // Ví dụ sau khi deploy backend xong: 
 // export const API_BASE = "https://rent-app-backend.onrender.com";
 
