@@ -1,62 +1,56 @@
-import smtplib
 import os
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from typing import Optional
 from fastapi import HTTPException
-
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 def send_email(to_email: str, subject: str, body: str) -> bool:
     """
-    Send email using SMTP. 
-    Falls back to console logging if email is not configured.
+    Send email using the SendGrid Web API.
+    Falls back to console logging if the API key is not configured.
     """
-    smtp_server = os.getenv("SMTP_SERVER")
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_password = os.getenv("SMTP_PASSWORD")
-    smtp_from = os.getenv("SMTP_FROM", smtp_user)
+    # We reuse the SMTP_PASSWORD variable for the SendGrid API Key for convenience
+    sendgrid_api_key = os.getenv("SMTP_PASSWORD")
+    smtp_from = os.getenv("SMTP_FROM")
 
-    # If SMTP is not configured, just log to console
-    if not smtp_server or not smtp_user or not smtp_password:
+    # If SendGrid is not configured, just log to console
+    if not sendgrid_api_key or not smtp_from:
         print("=" * 60)
         print(f"EMAIL NOT CONFIGURED - Would send email to: {to_email}")
         print(f"Subject: {subject}")
         print(f"Body:\n{body}")
         print("=" * 60)
-        return True  # Return True so the flow continues
-
-    try:
-        msg = MIMEMultipart()
-        msg['From'] = smtp_from
-        msg['To'] = to_email
-        msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'html'))
-
-        if smtp_port == 465:
-            # Use SMTP_SSL for port 465, which establishes a secure connection from the start
-            with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=15) as server:
-                server.login(smtp_user, smtp_password)
-                server.send_message(msg)
-        else:
-            # Use standard SMTP with STARTTLS for other ports (like 587)
-            with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as server:
-                server.starttls()
-                server.login(smtp_user, smtp_password)
-                server.send_message(msg)
-        
         return True
+
+    message = Mail(
+        from_email=smtp_from,
+        to_emails=to_email,
+        subject=subject,
+        html_content=body
+    )
+    try:
+        sg = SendGridAPIClient(sendgrid_api_key)
+        response = sg.send(message)
+        
+        # A successful send returns a 202 status code
+        if response.status_code == 202:
+            print(f"Email sent to {to_email} successfully via SendGrid.")
+            return True
+        else:
+            # Log the error from SendGrid for debugging
+            print(f"Failed to send email via SendGrid. Status Code: {response.status_code}")
+            print(f"Response Body: {response.body}")
+            return False
+            
     except Exception as e:
-        print(f"Failed to send email: {e}")
-        # --- Fallback for deployment environments that block SMTP ---
-        # Instead of raising an error, we log the info.
-        # This allows registration to complete.
+        print(f"An exception occurred while sending email: {e}")
+        # Fallback to console logging if there is an exception
         print("="*60)
         print(f"FALLBACK - VERIFICATION CODE for {to_email}:")
         print(f"Subject: {subject}")
         print(f"Body:\n{body}")
         print("="*60)
-        return True # Pretend email was sent to not block the user flow
+        return True # Return true to not block the user flow
 
 
 
