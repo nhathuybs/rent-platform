@@ -115,7 +115,7 @@ const AuthPage: React.FC<{ mode: 'login' | 'register' | 'verify' | 'forgot' | 'r
       if (mode === 'login') {
         const res = await api.login({ email: formData.email, password: formData.password });
         login(res.access_token, res.user);
-        navigate('/');
+        navigate('/dashboard');
       } else if (mode === 'register') {
         if (formData.password !== formData.confirm) throw new Error("Mật khẩu không khớp");
         await api.register({ email: formData.email, password: formData.password });
@@ -507,30 +507,21 @@ export function App() {
   }
 
   return (
-    <AuthProvider>
-      <HashRouter>
-        <Routes>
-          <Route path="/login" element={<AuthPage mode="login" />} />
-          <Route path="/register" element={<AuthPage mode="register" />} />
-          <Route path="/verify" element={<AuthPage mode="verify" />} />
-          <Route path="/forgot-password" element={<AuthPage mode="forgot" />} />
-          <Route path="/reset" element={<AuthPage mode="reset" />} />
-          
-          <Route path="/" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
-          <Route path="/history" element={<ProtectedLayout><History /></ProtectedLayout>} />
-          <Route path="/profile" element={<ProtectedLayout><Profile /></ProtectedLayout>} />
-          
-          <Route path="/admin" element={
-            <ProtectedLayout>
-                <AdminRoute><Admin /></AdminRoute>
-            </ProtectedLayout>
-          } />
-          
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </HashRouter>
-    </AuthProvider>
+    <HashRouter>
+      <Routes>
+        <Route path="/" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
+        <Route path="/dashboard" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
+        <Route path="/history" element={<ProtectedLayout><History /></ProtectedLayout>} />
+        <Route path="/profile" element={<ProtectedLayout><Profile /></ProtectedLayout>} />
+        <Route path="/admin" element={
+          <ProtectedLayout>
+            <AdminRoute><Admin /></AdminRoute>
+          </ProtectedLayout>
+        } />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </HashRouter>
   );
-};
+}
 
 export default App;
