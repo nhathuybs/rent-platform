@@ -20,6 +20,7 @@ origins = [
     "https://rent-platform.pages.dev",
     "https://*.rent-platform.pages.dev",
     "https://bubuns.dev",
+    "https://www.bubuns.dev",
 ]
 
 app.add_middleware(
