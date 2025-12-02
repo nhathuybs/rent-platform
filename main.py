@@ -14,16 +14,9 @@ app = FastAPI(
 )
 
 # CORS middleware - allow frontend to access API
-origins = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "https://rent-platform.pages.dev", # URL chính của Cloudflare
-    "https://*.rent-platform.pages.dev", # Cho phép tất cả các bản deploy preview
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"], # Tạm thời cho phép tất cả các nguồn để gỡ lỗi
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
