@@ -17,7 +17,7 @@ export const AuthContext = React.createContext<AuthContextType>(null!);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const logout = useCallback(() => {
@@ -32,24 +32,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(userData);
   };
 
-  const fetchUser = useCallback(async () => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const u = await api.getMe();
-      setUser(u);
-    } catch (e) {
-      logout();
-    } finally {
-      setLoading(false);
-    }
-  }, [token, logout]);
-
+  // This effect runs only once on initial app load
   useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
+    const fetchUserOnMount = async () => {
+      const existingToken = localStorage.getItem("token");
+      if (existingToken) {
+        try {
+          // The api.getMe() call will use the token from localStorage
+          const u = await api.getMe();
+          setUser(u);
+          setToken(existingToken);
+        } catch (e) {
+          // If the token is invalid (e.g., expired), clear it
+          localStorage.removeItem("token");
+        }
+      }
+      setLoading(false);
+    };
+    fetchUserOnMount();
+  }, []); // Empty dependency array ensures this runs only once
 
   if (loading) {
     return (
