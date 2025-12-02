@@ -14,9 +14,17 @@ app = FastAPI(
 )
 
 # CORS middleware - allow frontend to access API
+origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://rent-platform.pages.dev",
+    "https://*.rent-platform.pages.dev",
+    "https://bubuns.dev",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Tạm thời cho phép tất cả các nguồn để gỡ lỗi
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
