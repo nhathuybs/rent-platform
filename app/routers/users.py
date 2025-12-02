@@ -72,13 +72,7 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
     db.refresh(new_user)
     
     # Send verification email
-    try:
-        send_verification_email(user_data.email, verification_code)
-    except HTTPException as e:
-        # If email fails, rollback user creation and reraise
-        db.delete(new_user)
-        db.commit()
-        raise e
+    send_verification_email(user_data.email, verification_code)
     
     return MessageResponse(message="Registration successful. Please verify your email.")
 
