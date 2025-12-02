@@ -69,6 +69,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 const useAuth = () => React.useContext(AuthContext);
 
+// --- CURRENCY FORMATTER ---
+const formatVND = (price: number) => {
+    // Sử dụng toLocaleString để tự động thêm dấu chấm ngăn cách hàng nghìn
+    return price.toLocaleString('vi-VN') + ' VND';
+};
+
 // --- PAGES ---
 
 // 1. Auth Page (Handles Login, Register, Forgot, Verify)
@@ -245,7 +251,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => { fetchProducts(); }, []);
 
   const handleBuy = async (p: Product) => {
-    if (!window.confirm(`Thuê gói ${p.name} giá $${p.price}?`)) return;
+    if (!window.confirm(`Thuê gói ${p.name} giá ${formatVND(p.price)}?`)) return;
     try {
       await api.buyProduct(p.id);
       alert("Thuê thành công! Kiểm tra lịch sử để lấy thông tin.");
@@ -274,7 +280,7 @@ const Dashboard: React.FC = () => {
                   <h3 className="text-lg font-bold text-gray-800">{p.name}</h3>
                   <span className="bg-blue-100 text-brand-700 text-xs font-semibold px-2.5 py-0.5 rounded">{p.duration}</span>
                 </div>
-                <div className="text-3xl font-bold text-gray-900 mb-2">${p.price}</div>
+                <div className="text-3xl font-bold text-gray-900 mb-2">{formatVND(p.price)}</div>
                 <div className={`text-sm ${isOut ? 'text-red-500 font-semibold' : 'text-green-600'}`}>
                     {isOut ? 'Hết hàng' : `Còn lại: ${p.quantity}`}
                 </div>
@@ -355,7 +361,7 @@ const History: React.FC = () => {
                         {order.user_email || <span className="text-gray-400 italic">Không rõ</span>}
                     </td>
                 )}
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-bold">${order.price}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-bold">{formatVND(order.price)}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{order.account_info}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-mono bg-gray-50 rounded px-2">{order.password_info}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -414,7 +420,7 @@ const Admin: React.FC = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <Input id="name" label="Tên sản phẩm" value={formData.name} onChange={handleChange} required />
                     <div className="grid grid-cols-2 gap-4">
-                        <Input id="price" type="number" step="0.01" label="Giá ($)" value={formData.price} onChange={handleChange} required />
+                        <Input id="price" type="number" step="1000" label="Giá (VND)" value={formData.price} onChange={handleChange} required />
                         <Input id="quantity" type="number" label="Số lượng" value={formData.quantity} onChange={handleChange} required />
                     </div>
                     <Input id="duration" type="number" label="Thời hạn (Ngày)" value={formData.duration} onChange={handleChange} required />
