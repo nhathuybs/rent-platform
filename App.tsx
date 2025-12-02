@@ -139,7 +139,13 @@ const AuthPage: React.FC<{ mode: 'login' | 'register' | 'verify' | 'forgot' | 'r
         navigate('/login');
       }
     } catch (err: any) {
-      setError(err.message || "Đã có lỗi xảy ra");
+      if (err.message && err.message.includes("Email not verified")) {
+        setError("Email chưa xác thực. Chuyển hướng đến trang xác thực...");
+        localStorage.setItem("register_email", formData.email);
+        setTimeout(() => navigate('/verify'), 2000);
+      } else {
+        setError(err.message || "Đã có lỗi xảy ra");
+      }
     } finally {
       setIsLoading(false);
     }
