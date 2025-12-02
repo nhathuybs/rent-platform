@@ -23,6 +23,7 @@ class UserResponse(BaseModel):
     id: int
     email: str
     role: str
+    balance: float
 
     class Config:
         from_attributes = True
@@ -32,6 +33,11 @@ class AuthResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+
+class UserAddBalance(BaseModel):
+    email: EmailStr
+    amount: float
 
 
 class ResendVerification(BaseModel):
@@ -89,6 +95,7 @@ class OrderResponse(BaseModel):
     otp_info: Optional[str]
     purchase_time: datetime
     user_email: Optional[str] = None
+    user_balance_after: Optional[float] = None # For admin view
 
     class Config:
         from_attributes = True

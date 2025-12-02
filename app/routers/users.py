@@ -6,7 +6,8 @@ from app.database import get_db
 from app.models import User
 from app.schemas import (
     UserRegister, UserVerify, UserLogin, UserResponse, AuthResponse,
-    ResendVerification, ForgotPassword, ResetPassword, ChangePassword, MessageResponse
+    ResendVerification, ForgotPassword, ResetPassword, ChangePassword, MessageResponse,
+    UserAddBalance
 )
 from app.auth import (
     get_password_hash, verify_password, create_access_token,
@@ -162,14 +163,14 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
     return AuthResponse(
         access_token=access_token,
         token_type="bearer",
-        user=UserResponse(id=user.id, email=user.email, role=user.role)
+        user=UserResponse(id=user.id, email=user.email, role=user.role, balance=user.balance)
     )
 
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user_dep)):
     """Get current user info"""
-    return UserResponse(id=current_user.id, email=current_user.email, role=current_user.role)
+    return UserResponse(id=current_user.id, email=current_user.email, role=current_user.role, balance=current_user.balance)
 
 
 @router.post("/forgot-password", response_model=MessageResponse)
@@ -247,3 +248,29 @@ async def make_admin(email: str, db: Session = Depends(get_db)):
     db.commit()
     
     return MessageResponse(message=f"User {email} has been promoted to admin.")
+
+
+# --- ADMIN-ONLY ENDPOINT TO ADD BALANCE ---
+@router.post("/add-balance", response_model=MessageResponse, tags=["admin_utils"])
+async def add_balance(
+    data: UserAddBalance,
+    current_user: User = Depends(get_current_user_dep),
+    db: Session = Depends(get_db)
+):
+    """
+    Add balance to a user's account. Admin access required.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+
+    user_to_update = db.query(User).filter(User.email == data.email).first()
+    if not user_to_update:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with email {data.email} not found")
+
+    if data.amount <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Amount must be positive")
+
+    user_to_update.balance += data.amount
+    db.commit()
+
+    return MessageResponse(message=f"Successfully added {data.amount} to {data.email}. New balance is {user_to_update.balance}.")

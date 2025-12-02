@@ -23,7 +23,21 @@ async def buy_product(
     if product.quantity <= 0:
         raise HTTPException(status_code=400, detail="Product out of stock")
     
-    # Create order
+    # Check if user has enough balance
+    if current_user.balance < product.price:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Insufficient balance. You need {product.price} but only have {current_user.balance}."
+        )
+
+    # --- Start transaction ---
+    # 1. Deduct balance from user
+    current_user.balance -= product.price
+    
+    # 2. Decrease product quantity
+    product.quantity -= 1
+
+    # 3. Create order
     new_order = Order(
         user_id=current_user.id,
         product_id=product.id,
@@ -35,11 +49,9 @@ async def buy_product(
         purchase_time=datetime.utcnow()
     )
     
-    # Decrease product quantity
-    product.quantity -= 1
-    
     db.add(new_order)
     db.commit()
+    # --- End transaction ---
     
     return MessageResponse(message="Product purchased successfully")
 
