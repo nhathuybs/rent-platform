@@ -33,6 +33,13 @@ async def get_current_user_dep(token: str = Depends(oauth2_scheme), db: Session 
 @router.post("/register", response_model=MessageResponse)
 async def register(user_data: UserRegister, db: Session = Depends(get_db)):
     """Register a new user"""
+    # Check password length before hashing
+    if len(user_data.password.encode('utf-8')) > 72:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password is too long. Please use a password with 72 bytes or fewer."
+        )
+
     # Check if user already exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
