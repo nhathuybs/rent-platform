@@ -13,9 +13,21 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# A list of allowed origins. It's more secure to list them explicitly.
+# I've included your production frontend, common local dev ports,
+# and the Render backend URL itself.
+origins = [
+    "https://bubuns.dev",
+    "https://rent-platform.pages.dev",
+    "http://localhost",
+    "http://localhost:3000",
+    "http://localhost:5173", # Vite default
+    "https://rent-platform-1.onrender.com",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https?://(.*\.)?(bubuns\.dev|rent-platform-1\.onrender\.com|rent-platform\.pages\.dev)", # Allow your domains and subdomains
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
