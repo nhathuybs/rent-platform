@@ -40,11 +40,19 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
             detail="Password is too long. Please use a password with 72 bytes or fewer."
         )
 
-    # Check if user already exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
-    if existing_user:
+    if existing_user and existing_user.is_verified:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    if existing_user and not existing_user.is_verified:
+        # User exists but is not verified, resend verification
+        verification_code = generate_verification_code()
+        existing_user.verification_code = verification_code
+        existing_user.verification_code_expires = datetime.utcnow() + timedelta(minutes=10)
+        db.commit()
+        send_verification_email(existing_user.email, verification_code)
+        raise HTTPException(status_code=400, detail="This email is already registered but not verified. A new verification code has been sent.")
+
     # Create verification code
     verification_code = generate_verification_code()
     expires_at = datetime.utcnow() + timedelta(minutes=10)

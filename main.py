@@ -13,19 +13,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware - allow frontend to access API
-origins = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "https://rent-platform.pages.dev",
-    "https://*.rent-platform.pages.dev",
-    "https://bubuns.dev",
-    "https://www.bubuns.dev",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origin_regex=r"https?://(.*\.)?(bubuns\.dev|rent-platform-1\.onrender\.com|rent-platform\.pages\.dev)", # Allow your domains and subdomains
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
