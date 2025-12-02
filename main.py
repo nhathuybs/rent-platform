@@ -17,7 +17,6 @@ app = FastAPI(
 origins = [
     "http://localhost:3000",
     "http://localhost:5173",
-    "https://nhathuybs.github.io", # URL cũ
     "https://rent-platform.pages.dev", # URL chính của Cloudflare
     "https://*.rent-platform.pages.dev", # Cho phép tất cả các bản deploy preview
 ]
