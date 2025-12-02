@@ -137,6 +137,18 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
         )
     
     if not user.is_verified:
+        # Automatically resend verification code if user is not verified
+        new_code = generate_verification_code()
+        user.verification_code = new_code
+        user.verification_code_expires = datetime.utcnow() + timedelta(minutes=10)
+        db.commit()
+        
+        try:
+            send_verification_email(user.email, new_code)
+        except Exception:
+            # If sending email fails, don't block the login attempt feedback
+            pass
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, 
             detail="Email not verified"
