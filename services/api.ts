@@ -30,19 +30,18 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers,
   });
 
-  if (response.status === 401) {
-    localStorage.removeItem("token");
-    window.location.hash = "#/login"; // Redirect using hash router pattern
-    throw new Error("Unauthorized");
-  }
-
-  const data = await response.json();
-
   if (!response.ok) {
-    throw new Error(data.detail || "API Error");
+    // If the response is not successful, try to parse the error body
+    const errorBody = await response.json().catch(() => ({ detail: response.statusText }));
+    throw new Error(errorBody.detail || 'An unknown error occurred');
   }
 
-  return data;
+  // If the response has no content, return a default value or handle as needed
+  if (response.status === 204) {
+    return {} as T;
+  }
+
+  return response.json() as Promise<T>;
 }
 
 export const api = {
