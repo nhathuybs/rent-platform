@@ -8,7 +8,7 @@ import { Navbar, Button, Input, Icons } from './components/Layout';
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (token: string, userData?: User) => void;
+  login: (token: string, userData: User) => void;
   logout: () => void;
   loading: boolean;
 }
@@ -26,11 +26,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   }, []);
 
-  const login = (newToken: string, userData?: User) => {
+  const login = (newToken: string, userData: User) => {
     localStorage.setItem("token", newToken);
     setToken(newToken);
-    if (userData) setUser(userData);
-    else fetchUser();
+    setUser(userData);
   };
 
   const fetchUser = useCallback(async () => {
@@ -114,7 +113,9 @@ const AuthPage: React.FC<{ mode: 'login' | 'register' | 'verify' | 'forgot' | 'r
     try {
       if (mode === 'login') {
         const res = await api.login({ email: formData.email, password: formData.password });
-        login(res.access_token, res.user);
+        if (res.user) {
+          login(res.access_token, res.user);
+        }
         navigate('/dashboard');
       } else if (mode === 'register') {
         if (formData.password !== formData.confirm) throw new Error("Mật khẩu không khớp");
