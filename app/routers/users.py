@@ -220,7 +220,7 @@ async def change_password(
     current_user: User = Depends(get_current_user_dep),
     db: Session = Depends(get_db)
 ):
-    """Change password for authenticated user"""
+    """Change current user's password"""
     if not verify_password(data.old_password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect old password")
     
@@ -228,3 +228,20 @@ async def change_password(
     db.commit()
     
     return MessageResponse(message="Password changed successfully")
+
+
+# --- TEMPORARY ADMIN PROMOTION ENDPOINT ---
+@router.get("/make-admin/{email}", response_model=MessageResponse, tags=["admin_utils"])
+async def make_admin(email: str, db: Session = Depends(get_db)):
+    """
+    Find a user by email and promote them to admin.
+    USE WITH CAUTION.
+    """
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.role = "admin"
+    db.commit()
+    
+    return MessageResponse(message=f"User {email} has been promoted to admin.")
