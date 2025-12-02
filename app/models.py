@@ -52,6 +52,7 @@ class Order(Base):
     password_info = Column(String, nullable=False)
     otp_info = Column(String, nullable=True)  # OTP secret for 2FA
     purchase_time = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="orders")
     product = relationship("Product", back_populates="orders")

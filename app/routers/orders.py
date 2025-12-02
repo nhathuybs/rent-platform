@@ -1,12 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Order, Product, User
 from app.schemas import OrderResponse, MessageResponse
 from app.routers.users import get_current_user_dep
-from datetime import datetime
+from datetime import datetime, timedelta
+import re
 
 router = APIRouter(prefix="/orders", tags=["orders"])
+
+def parse_duration_to_days(duration_str: str) -> int:
+    """Parses a string like '30 Ngày' into an integer number of days."""
+    match = re.search(r'\d+', duration_str)
+    if match:
+        return int(match.group(0))
+    return 30 # Default to 30 days if parsing fails
 
 
 @router.post("/buy/{product_id}", response_model=MessageResponse)
@@ -37,7 +45,12 @@ async def buy_product(
     # 2. Decrease product quantity
     product.quantity -= 1
 
-    # 3. Create order
+    # 3. Calculate expiration date
+    duration_days = parse_duration_to_days(product.duration)
+    purchase_time = datetime.utcnow()
+    expires_at = purchase_time + timedelta(days=duration_days)
+
+    # 4. Create order
     new_order = Order(
         user_id=current_user.id,
         product_id=product.id,
@@ -46,14 +59,35 @@ async def buy_product(
         account_info=product.account_info,
         password_info=product.password_info,
         otp_info=product.otp_secret,
-        purchase_time=datetime.utcnow()
+        purchase_time=purchase_time,
+        expires_at=expires_at
     )
     
     db.add(new_order)
     db.commit()
     # --- End transaction ---
     
-    return MessageResponse(message="Product purchased successfully")
+    return MessageResponse(message="Product purchased successfully. It will expire on " + expires_at.strftime('%Y-%m-%d %H:%M:%S'))
+
+
+def create_order_response(order: Order, user_email: str = None) -> OrderResponse:
+    """Helper function to create an OrderResponse, calculating is_expired."""
+    now = datetime.utcnow()
+    is_expired = order.expires_at is None or now > order.expires_at
+    
+    return OrderResponse(
+        id=order.id,
+        product_name=order.product_name,
+        price=order.price,
+        account_info=order.account_info,
+        password_info=order.password_info,
+        # Only show OTP info if the order is not expired
+        otp_info=order.otp_info if not is_expired else None,
+        purchase_time=order.purchase_time,
+        expires_at=order.expires_at,
+        is_expired=is_expired,
+        user_email=user_email
+    )
 
 
 @router.get("/history", response_model=list[OrderResponse])
@@ -64,15 +98,7 @@ async def get_history(
     """Get order history for current user"""
     orders = db.query(Order).filter(Order.user_id == current_user.id).order_by(Order.purchase_time.desc()).all()
     
-    return [OrderResponse(
-        id=o.id,
-        product_name=o.product_name,
-        price=o.price,
-        account_info=o.account_info,
-        password_info=o.password_info,
-        otp_info=o.otp_info,
-        purchase_time=o.purchase_time
-    ) for o in orders]
+    return [create_order_response(o) for o in orders]
 
 
 @router.get("/all", response_model=list[OrderResponse])
@@ -92,18 +118,101 @@ async def get_all_orders(
     users = db.query(User).filter(User.id.in_(user_ids)).all()
     user_email_map = {user.id: user.email for user in users}
     
-    result = []
-    for o in orders:
-        result.append(OrderResponse(
-            id=o.id,
-            product_name=o.product_name,
-            price=o.price,
-            account_info=o.account_info,
-            password_info=o.password_info,
-            otp_info=o.otp_info,
-            purchase_time=o.purchase_time,
-            user_email=user_email_map.get(o.user_id)
-        ))
+    return [create_order_response(o, user_email=user_email_map.get(o.user_id)) for o in orders]
+
+
+# --- NEW ENDPOINTS ---
+
+@router.post("/renew/{order_id}", response_model=MessageResponse, tags=["user_actions"])
+async def renew_order(
+    order_id: int,
+    current_user: User = Depends(get_current_user_dep),
+    db: Session = Depends(get_db)
+):
+    """Renew an existing order."""
+    order = db.query(Order).filter(Order.id == order_id, Order.user_id == current_user.id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found or you do not own this order.")
+
+    product = db.query(Product).filter(Product.id == order.product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="The original product for this order no longer exists.")
+
+    # Check for balance
+    if current_user.balance < product.price:
+        raise HTTPException(status_code=400, detail=f"Insufficient balance to renew. You need {product.price}.")
+
+    # Deduct balance
+    current_user.balance -= product.price
+
+    # Extend expiration
+    duration_days = parse_duration_to_days(product.duration)
+    # If the order is already expired, renew from now. Otherwise, extend the current expiration date.
+    start_date = max(datetime.utcnow(), order.expires_at or datetime.utcnow())
+    order.expires_at = start_date + timedelta(days=duration_days)
     
-    return result
+    db.commit()
+
+    return MessageResponse(message=f"Successfully renewed. New expiration date is {order.expires_at.strftime('%Y-%m-%d')}.")
+
+
+@router.post("/admin/assign", response_model=OrderResponse, tags=["admin_actions"])
+async def admin_assign_product(
+    user_email: str,
+    product_id: int,
+    admin_user: User = Depends(get_current_user_dep),
+    db: Session = Depends(get_db)
+):
+    """Admin assigns a product to a user for free."""
+    if admin_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+
+    user = db.query(User).filter(User.email == user_email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User '{user_email}' not found.")
+    
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found.")
+
+    duration_days = parse_duration_to_days(product.duration)
+    purchase_time = datetime.utcnow()
+    expires_at = purchase_time + timedelta(days=duration_days)
+
+    new_order = Order(
+        user_id=user.id,
+        product_id=product.id,
+        product_name=f"[Assigned by Admin] {product.name}",
+        price=0, # Assigned for free
+        account_info=product.account_info,
+        password_info=product.password_info,
+        otp_info=product.otp_secret,
+        purchase_time=purchase_time,
+        expires_at=expires_at
+    )
+    db.add(new_order)
+    db.commit()
+    db.refresh(new_order)
+
+    return create_order_response(new_order, user_email=user.email)
+
+
+@router.delete("/admin/revoke/{order_id}", response_model=MessageResponse, tags=["admin_actions"])
+async def admin_revoke_order(
+    order_id: int,
+    admin_user: User = Depends(get_current_user_dep),
+    db: Session = Depends(get_db)
+):
+    """Admin revokes (deletes) a user's order."""
+    if admin_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+    
+    order_to_delete = db.query(Order).filter(Order.id == order_id).first()
+    if not order_to_delete:
+        raise HTTPException(status_code=404, detail="Order not found.")
+
+    db.delete(order_to_delete)
+    db.commit()
+
+    return MessageResponse(message=f"Order ID {order_id} has been successfully revoked.")
 

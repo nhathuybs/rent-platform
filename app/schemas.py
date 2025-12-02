@@ -94,6 +94,8 @@ class OrderResponse(BaseModel):
     password_info: str
     otp_info: Optional[str]
     purchase_time: datetime
+    expires_at: Optional[datetime]
+    is_expired: bool = False
     user_email: Optional[str] = None
     user_balance_after: Optional[float] = None # For admin view
 
