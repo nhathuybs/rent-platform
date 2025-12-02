@@ -33,10 +33,17 @@ def send_email(to_email: str, subject: str, body: str) -> bool:
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'html'))
 
-        with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_password)
-            server.send_message(msg)
+        if smtp_port == 465:
+            # Use SMTP_SSL for port 465, which establishes a secure connection from the start
+            with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=15) as server:
+                server.login(smtp_user, smtp_password)
+                server.send_message(msg)
+        else:
+            # Use standard SMTP with STARTTLS for other ports (like 587)
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_password)
+                server.send_message(msg)
         
         return True
     except Exception as e:
