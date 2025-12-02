@@ -20,7 +20,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
 
 async def get_current_user_dep(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     """Dependency to get current authenticated user"""
-    user = get_current_user(db, token)
+    user = get_current_user(token, db)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
