@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, createContext, useContext } fr
 import { HashRouter, Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
 import { api } from './services/api';
 import { User, Product, Order, PromoCode } from './types';
-import { Navbar, Button, Input, Icons, Modal } from './components/Layout';
+import { Navbar, Button, Input } from './components/Layout';
 
 // --- UTILITY & FORMATTER ---
 const formatVND = (price: number) => price.toLocaleString('vi-VN') + ' VND';
