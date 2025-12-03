@@ -49,6 +49,45 @@ async def add_product(
     return MessageResponse(message="Product added successfully")
 
 
+
+@router.get("/{product_id}", response_model=ProductResponse)
+async def get_product(
+    product_id: int,
+    current_user: User = Depends(get_current_user_dep),
+    db: Session = Depends(get_db)
+):
+    """Get a product's details (admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    return product
+
+
+@router.get("/admin/{product_id}", response_model=ProductResponse, tags=["admin_utils"])
+async def admin_get_product(
+    product_id: int,
+    current_user: User = Depends(get_current_user_dep),
+    db: Session = Depends(get_db)
+):
+    """Temporary admin-only GET for product (debugging).
+
+    Requires admin role. This endpoint is added temporarily to help
+    verify deployed server can return product details via GET.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    return product
+
+
 @router.put("/{product_id}", response_model=ProductResponse, tags=["admin_actions"])
 async def update_product(
     product_id: int,
