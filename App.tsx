@@ -11,6 +11,7 @@ const formatDate = (dateString?: string) => dateString ? new Date(dateString).to
 // --- CONTEXT ---
 interface AuthContextType {
   user: User | null;
+  token: string | null;
   login: (token: string, userData: User) => void;
   logout: () => void;
   updateUser: (updatedUserData: Partial<User>) => void;
