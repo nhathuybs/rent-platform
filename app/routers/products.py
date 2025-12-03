@@ -69,6 +69,17 @@ async def list_products(db: Session = Depends(get_db)):
     return response_list
 
 
+@router.get("/calc-otp")
+async def calc_otp(secret: str = Query(...)):
+    """Calculate OTP from secret key"""
+    try:
+        totp = pyotp.TOTP(secret)
+        otp = totp.now()
+        return {"otp": otp}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid OTP secret: {str(e)}")
+
+
 @router.post("/add", response_model=MessageResponse)
 async def add_product(
     product_data: ProductCreate,
@@ -194,14 +205,3 @@ async def delete_product(
     db.commit()
 
     return MessageResponse(message="Product soft-deleted; it will be removed in 10 minutes")
-
-
-@router.get("/calc-otp", response_model=CalcOtpResponse)
-async def calc_otp(secret: str = Query(...)):
-    """Calculate OTP from secret key"""
-    try:
-        totp = pyotp.TOTP(secret)
-        otp = totp.now()
-        return CalcOtpResponse(otp=otp)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid OTP secret: {str(e)}")
