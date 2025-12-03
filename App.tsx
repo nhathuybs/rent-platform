@@ -313,7 +313,11 @@ const History: React.FC = () => {
                                 <td className="px-4 py-4 text-sm">
                                         {o.otp_info ? (
                                             otpCache[o.id] ? (
-                                                <span className="font-mono">{otpCache[o.id]}</span>
+                                                otpCache[o.id] === 'INVALID' ? (
+                                                    <span className="text-red-500 text-xs">Secret không hợp lệ</span>
+                                                ) : (
+                                                    <span className="font-mono">{otpCache[o.id]}</span>
+                                                )
                                             ) : (
                                                 <Button size="sm" variant="secondary" onClick={async () => {
                                                     // Fetch OTP, copy to clipboard, and show in-cell
@@ -331,6 +335,8 @@ const History: React.FC = () => {
                                                         }
                                                     } catch (e: any) {
                                                         console.error('Failed to fetch OTP', e);
+                                                        // Mark as invalid so user knows
+                                                        setOtpCache(prev => ({ ...prev, [o.id]: 'INVALID' }));
                                                     } finally {
                                                         setOtpLoading(prev => ({ ...prev, [o.id]: false }));
                                                     }
