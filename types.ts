@@ -12,13 +12,22 @@ export interface AuthResponse {
   user: User;
 }
 
-export interface Product {
+// This interface is for the public list, which hides sensitive info
+export interface ProductListItem {
   id: number;
   name: string;
   price: number;
   quantity: number;
   duration: string;
 }
+
+// This interface includes all details, used for the edit form
+export interface ProductDetails extends ProductListItem {
+    account_info: string;
+    password_info: string;
+    otp_secret?: string;
+}
+
 
 export interface Order {
   id: number;

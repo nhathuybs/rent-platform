@@ -70,6 +70,16 @@ class ProductCreate(BaseModel):
     otp_secret: Optional[str] = None
 
 
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    price: Optional[float] = None
+    quantity: Optional[int] = None
+    duration: Optional[str] = None
+    account_info: Optional[str] = None # Corresponds to account in create
+    password_info: Optional[str] = None # Corresponds to password in create
+    otp_secret: Optional[str] = None
+
+
 class ProductResponse(BaseModel):
     id: int
     name: str
