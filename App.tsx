@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
-import { HashRouter, Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useNavigate, Link, useParams } from 'react-router-dom';
 import { api } from './services/api';
-import { User, Order } from './types';
+import { User, ProductListItem, Order, PromoCode } from './types';
 import { Navbar, Button, Input } from './components/Layout';
 
 // --- UTILITY & FORMATTER ---
@@ -174,7 +174,49 @@ const AuthPage: React.FC<{ mode: 'login' | 'register' | 'verify' | 'forgot' | 'r
     );
 };
 
-const Dashboard: React.FC = () => { return <div>Dashboard Page</div>; };
+const Dashboard: React.FC = () => {
+    const { user, updateUser } = useAuth();
+    const [products, setProducts] = useState<ProductListItem[]>([]);
+    
+    useEffect(() => {
+        api.getProducts().then(setProducts).catch(e => console.error(e));
+    }, []);
+
+    const handleBuy = async (product: ProductListItem) => {
+        if (!window.confirm(`Mua "${product.name}" với giá ${formatVND(product.price)}?`)) return;
+        try {
+            await api.buyProduct(product.id);
+            alert("Mua hàng thành công! Kiểm tra trang Lịch sử để xem chi tiết.");
+            const me = await api.getMe();
+            updateUser({ balance: me.balance });
+        } catch (e: any) {
+            alert(e.message);
+        }
+    };
+    
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <h1 className="text-2xl font-bold mb-6">Sản phẩm có sẵn</h1>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {products.map(p => (
+                    <div key={p.id} className="bg-white rounded-xl shadow border flex flex-col">
+                        <div className="p-6 flex-grow">
+                            <h2 className="text-xl font-bold mb-2">{p.name}</h2>
+                            <p className="text-gray-600 text-sm mb-4">Stock: {p.quantity}</p>
+                        </div>
+                        <div className="p-6 bg-gray-50 rounded-b-xl flex justify-between items-center">
+                            <div>
+                                <p className="text-lg font-semibold text-brand-600">{formatVND(p.price)}</p>
+                                <p className="text-sm text-gray-500">/ {p.duration}</p>
+                            </div>
+                            <Button onClick={() => handleBuy(p)} disabled={(user?.balance || 0) < p.price}>Mua</Button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
 
 const History: React.FC = () => {
     const { user, updateUser } = useAuth();
@@ -318,10 +360,285 @@ const Profile: React.FC = () => {
 };
 
 // --- ADMIN PAGES ---
-const AdminProductManagement: React.FC = () => { return <div>Product Management</div>; };
-const AdminProductForm: React.FC<{ mode: 'new' | 'edit' }> = () => { return <div>Product Form</div>; };
-const AdminUserManagement: React.FC = () => { return <div>User Management</div>; };
-const AdminPromoManagement: React.FC = () => { return <div>Promo Management</div>; };
+const AdminProductManagement: React.FC = () => {
+    const [products, setProducts] = useState<ProductListItem[]>([]);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const data = await api.getProducts();
+                setProducts(data);
+            } catch (error) {
+                console.error("Failed to fetch products", error);
+                alert("Failed to fetch products");
+            }
+        };
+        fetchProducts();
+    }, []);
+
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold">Product Management</h1>
+                <Button onClick={() => navigate('/admin/products/new')}>Add New Product</Button>
+            </div>
+            <div className="bg-white rounded-lg shadow overflow-x-auto border">
+                <table className="min-w-full divide-y">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase">ID</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase">Name</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase">Price</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase">Duration</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase">Stock</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                        {products.map(p => (
+                            <tr key={p.id}>
+                                <td className="px-4 py-4">{p.id}</td>
+                                <td className="px-4 py-4 font-medium">{p.name}</td>
+                                <td className="px-4 py-4">{formatVND(p.price)}</td>
+                                <td className="px-4 py-4">{p.duration}</td>
+                                <td className="px-4 py-4">{p.quantity}</td>
+                                <td className="px-4 py-4 text-right">
+                                    <Button size="sm" onClick={() => navigate(`/admin/products/edit/${p.id}`)}>Edit</Button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+const AdminProductForm: React.FC<{ mode: 'new' | 'edit' }> = () => {
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const mode = id ? 'edit' : 'new';
+    const [product, setProduct] = useState({
+        name: '',
+        price: 0,
+        duration: '',
+        quantity: 0,
+        account_info: '',
+        password_info: '',
+        otp_secret: ''
+    });
+
+    useEffect(() => {
+        if (mode === 'edit' && id) {
+            const fetchProduct = async () => {
+                try {
+                    const data = await api.admin.getProductDetails(parseInt(id));
+                    setProduct({
+                        name: data.name,
+                        price: data.price,
+                        duration: data.duration,
+                        quantity: data.quantity,
+                        account_info: data.account_info,
+                        password_info: data.password_info,
+                        otp_secret: data.otp_secret || ''
+                    });
+                } catch (error) {
+                    alert('Failed to fetch product details');
+                }
+            };
+            fetchProduct();
+        }
+    }, [id, mode]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setProduct(prev => ({ ...prev, [name]: name === 'price' || name === 'quantity' ? parseInt(value) : value }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            if (mode === 'new') {
+                await api.admin.addProduct(product);
+                alert('Product created successfully');
+            } else if (id) {
+                await api.admin.updateProduct(parseInt(id), product);
+                alert('Product updated successfully');
+            }
+            navigate('/admin/products');
+        } catch (error) {
+            alert('An error occurred');
+        }
+    };
+
+    return (
+        <div className="container mx-auto px-4 py-8 max-w-2xl">
+            <h1 className="text-2xl font-bold mb-6">{mode === 'new' ? 'Create New Product' : 'Edit Product'}</h1>
+            <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow border space-y-4">
+                <Input name="name" label="Product Name" value={product.name} onChange={handleChange} required />
+                <Input name="price" type="number" label="Price (VND)" value={product.price.toString()} onChange={handleChange} required />
+                <Input name="duration" label="Duration" value={product.duration} onChange={handleChange} required />
+                <Input name="quantity" type="number" label="Quantity" value={product.quantity.toString()} onChange={handleChange} required />
+                <Input name="account_info" label="Account Info" value={product.account_info} onChange={handleChange} required />
+                <Input name="password_info" label="Password Info" value={product.password_info} onChange={handleChange} required />
+                <Input name="otp_secret" label="OTP Secret" value={product.otp_secret} onChange={handleChange} />
+                <div className="flex gap-4">
+                    <Button type="submit">Save Product</Button>
+                    <Button variant="secondary" onClick={() => navigate('/admin/products')}>Cancel</Button>
+                </div>
+            </form>
+        </div>
+    );
+};
+const AdminUserManagement: React.FC = () => {
+    const [users, setUsers] = useState<User[]>([]);
+
+    const fetchUsers = useCallback(async () => {
+        try {
+            const data = await api.admin.getUsers();
+            setUsers(data);
+        } catch (error) {
+            alert('Failed to fetch users');
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
+    
+    const handleSetBalance = async (user: User) => {
+        const newBalanceStr = prompt(`Set new balance for ${user.email}:`, user.balance.toString());
+        if (newBalanceStr) {
+            const newBalance = parseInt(newBalanceStr);
+            if (!isNaN(newBalance)) {
+                try {
+                    await api.admin.setBalance(user.email, newBalance);
+                    alert('Balance updated!');
+                    fetchUsers();
+                } catch (e: any) { alert(e.message); }
+            }
+        }
+    };
+
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <h1 className="text-2xl font-bold mb-6">User Management</h1>
+            <div className="bg-white rounded-lg shadow overflow-x-auto border">
+                <table className="min-w-full divide-y">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-4 py-3 text-left">ID</th>
+                            <th className="px-4 py-3 text-left">Email</th>
+                            <th className="px-4 py-3 text-left">Balance</th>
+                            <th className="px-4 py-3 text-left">Role</th>
+                            <th className="px-4 py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                        {users.map(u => (
+                            <tr key={u.id}>
+                                <td className="px-4 py-4">{u.id}</td>
+                                <td className="px-4 py-4">{u.email}</td>
+                                <td className="px-4 py-4">{formatVND(u.balance)}</td>
+                                <td className="px-4 py-4">{u.role}</td>
+                                <td className="px-4 py-4 text-right">
+                                    <Button size="sm" onClick={() => handleSetBalance(u)}>Set Balance</Button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+const AdminPromoManagement: React.FC = () => {
+    const [promos, setPromos] = useState<PromoCode[]>([]);
+    const [newPromo, setNewPromo] = useState({ code: '', amount: 10000 });
+    
+    const fetchPromos = useCallback(async () => {
+        try {
+            const data = await api.admin.getPromos();
+            setPromos(data);
+        } catch (e) { alert('Failed to fetch promo codes'); }
+    }, []);
+
+    useEffect(() => {
+        fetchPromos();
+    }, [fetchPromos]);
+
+    const handleCreate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await api.admin.createPromo(newPromo);
+            alert('Promo code created!');
+            setNewPromo({ code: '', amount: 10000 });
+            fetchPromos();
+        } catch (e: any) { alert(e.message); }
+    };
+    
+    const handleDelete = async (id: number) => {
+        if (window.confirm('Are you sure you want to delete this promo code?')) {
+            try {
+                await api.admin.deletePromo(id);
+                alert('Promo code deleted!');
+                fetchPromos();
+            } catch (e: any) { alert(e.message); }
+        }
+    };
+
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <h1 className="text-2xl font-bold mb-6">Promo Code Management</h1>
+            <div className="grid md:grid-cols-2 gap-8">
+                <div className="bg-white p-6 rounded-lg shadow border">
+                    <h2 className="text-lg font-semibold mb-4">Create New Code</h2>
+                    <form onSubmit={handleCreate} className="space-y-4">
+                        <Input 
+                            label="Code" 
+                            value={newPromo.code} 
+                            onChange={e => setNewPromo(p => ({ ...p, code: e.target.value.toUpperCase() }))} 
+                            required 
+                        />
+                        <Input 
+                            label="Amount (VND)" 
+                            type="number"
+                            value={newPromo.amount.toString()} 
+                            onChange={e => setNewPromo(p => ({ ...p, amount: parseInt(e.target.value) }))} 
+                            required 
+                        />
+                        <Button type="submit">Create</Button>
+                    </form>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow border">
+                    <h2 className="text-lg font-semibold mb-4">Existing Codes</h2>
+                    <div className="overflow-y-auto max-h-96">
+                        <table className="min-w-full divide-y">
+                           <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-4 py-2 text-left">Code</th>
+                                    <th className="px-4 py-2 text-left">Amount</th>
+                                    <th className="px-4 py-2 text-right"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {promos.map(p => (
+                                    <tr key={p.id}>
+                                        <td className="px-4 py-2 font-mono">{p.code}</td>
+                                        <td className="px-4 py-2">{formatVND(p.amount)}</td>
+                                        <td className="px-4 py-2 text-right">
+                                            <Button variant="danger" size="sm" onClick={() => handleDelete(p.id)}>Delete</Button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // --- LAYOUT & ROUTING ---
 const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
