@@ -5,7 +5,7 @@ import pyotp
 from app.database import get_db
 from app.models import Product
 from app.schemas import ProductCreate, ProductUpdate, ProductResponse, CalcOtpResponse, MessageResponse, ProductPublicResponse
-from app.routers.users import get_current_user_dep
+from app.auth import get_current_active_user
 from app.models import User
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -42,7 +42,7 @@ async def list_products(db: Session = Depends(get_db)):
 @router.post("/add", response_model=MessageResponse)
 async def add_product(
     product_data: ProductCreate,
-    current_user: User = Depends(get_current_user_dep),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Add a new product (admin only)"""
@@ -69,7 +69,7 @@ async def add_product(
 @router.get("/{product_id}", response_model=ProductResponse)
 async def get_product(
     product_id: int,
-    current_user: User = Depends(get_current_user_dep),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Get a product's details (admin only)"""
@@ -86,7 +86,7 @@ async def get_product(
 @router.get("/admin/{product_id}", response_model=ProductResponse, tags=["admin_utils"])
 async def admin_get_product(
     product_id: int,
-    current_user: User = Depends(get_current_user_dep),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Temporary admin-only GET for product (debugging).
@@ -108,7 +108,7 @@ async def admin_get_product(
 async def update_product(
     product_id: int,
     product_data: ProductUpdate,
-    current_user: User = Depends(get_current_user_dep),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Update a product's details (admin only)"""
@@ -141,7 +141,7 @@ async def update_product(
 @router.delete("/{product_id}", response_model=MessageResponse, tags=["admin_actions"])
 async def delete_product(
     product_id: int,
-    current_user: User = Depends(get_current_user_dep),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Soft-delete a product (admin-only). This masks credentials and marks it deleted;
@@ -168,7 +168,7 @@ async def delete_product(
 
 @router.get("/admin/list", tags=["admin"])
 async def admin_list_products(
-    current_user: User = Depends(get_current_user_dep),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Admin endpoint to list all products including soft-deleted ones."""

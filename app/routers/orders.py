@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Order, Product, User
 from app.schemas import OrderResponse, MessageResponse, OrderUpdate
-from app.routers.users import get_current_user_dep
+from app.auth import get_current_active_user
 from datetime import datetime, timedelta
 import re
 
@@ -20,7 +20,7 @@ def parse_duration_to_days(duration_str: str) -> int:
 @router.post("/buy/{product_id}", response_model=MessageResponse)
 async def buy_product(
     product_id: int,
-    current_user: User = Depends(get_current_user_dep),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Buy/rent a product"""
@@ -92,7 +92,7 @@ def create_order_response(order: Order, user_email: str = None) -> OrderResponse
 
 @router.get("/history", response_model=list[OrderResponse])
 async def get_history(
-    current_user: User = Depends(get_current_user_dep),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Get order history for current user"""
@@ -103,7 +103,7 @@ async def get_history(
 
 @router.get("/all", response_model=list[OrderResponse])
 async def get_all_orders(
-    current_user: User = Depends(get_current_user_dep),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Get all orders (admin only)"""
@@ -126,7 +126,7 @@ async def get_all_orders(
 @router.post("/renew/{order_id}", response_model=MessageResponse, tags=["user_actions"])
 async def renew_order(
     order_id: int,
-    current_user: User = Depends(get_current_user_dep),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Renew an existing order."""
@@ -160,7 +160,7 @@ async def renew_order(
 async def admin_assign_product(
     user_email: str,
     product_id: int,
-    admin_user: User = Depends(get_current_user_dep),
+    admin_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Admin assigns a product to a user for free."""
@@ -200,7 +200,7 @@ async def admin_assign_product(
 @router.delete("/admin/revoke/{order_id}", response_model=MessageResponse, tags=["admin_actions"])
 async def admin_revoke_order(
     order_id: int,
-    admin_user: User = Depends(get_current_user_dep),
+    admin_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Admin revokes (deletes) a user's order."""
@@ -221,7 +221,7 @@ async def admin_revoke_order(
 async def admin_update_order(
     order_id: int,
     order_data: OrderUpdate,
-    admin_user: User = Depends(get_current_user_dep),
+    admin_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Admin updates an order's details (e.g., expiration date)."""

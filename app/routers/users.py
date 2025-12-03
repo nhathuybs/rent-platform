@@ -11,24 +11,12 @@ from app.schemas import (
 )
 from app.auth import (
     get_password_hash, verify_password, create_access_token,
-    get_current_user, generate_verification_code, generate_reset_code
+    get_current_active_user, generate_verification_code, generate_reset_code
 )
 from app.email_utils import send_verification_email, send_reset_password_email
 
 router = APIRouter(prefix="/users", tags=["users"])
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
 
-
-async def get_current_user_dep(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    """Dependency to get current authenticated user"""
-    user = get_current_user(token, db)
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return user
 
 
 @router.post("/register", response_model=MessageResponse)
@@ -168,7 +156,7 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_me(current_user: User = Depends(get_current_user_dep)):
+async def get_me(current_user: User = Depends(get_current_active_user)):
     """Get current user info"""
     return UserResponse(id=current_user.id, email=current_user.email, role=current_user.role, balance=current_user.balance)
 
@@ -220,7 +208,7 @@ async def reset_password(data: ResetPassword, db: Session = Depends(get_db)):
 @router.post("/change-password", response_model=MessageResponse)
 async def change_password(
     data: ChangePassword,
-    current_user: User = Depends(get_current_user_dep),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Change current user's password"""
@@ -254,7 +242,7 @@ async def make_admin(email: str, db: Session = Depends(get_db)):
 @router.post("/redeem-code", response_model=MessageResponse, tags=["user_actions"])
 async def redeem_promo_code(
     data: RedeemCodeRequest,
-    current_user: User = Depends(get_current_user_dep),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Redeem a promotion code to add balance to the user's account."""
@@ -284,7 +272,7 @@ async def redeem_promo_code(
 @router.post("/add-balance", response_model=MessageResponse, tags=["admin_utils"])
 async def add_balance(
     data: UserAddBalance,
-    current_user: User = Depends(get_current_user_dep),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """

@@ -5,7 +5,7 @@ from app.models import User, PromotionCode
 from app.schemas import (
     AdminUserDetailResponse, PromoCodeCreate, PromoCodeResponse, MessageResponse, UserAddBalance
 )
-from app.routers.users import get_current_user_dep
+from app.auth import get_current_active_user
 from sqlalchemy.orm import selectinload
 from typing import List
 
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.get("/users", response_model=List[AdminUserDetailResponse])
 async def get_all_users_with_details(
-    admin_user: User = Depends(get_current_user_dep),
+    admin_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -32,7 +32,7 @@ async def get_all_users_with_details(
 @router.put("/users/balance", response_model=MessageResponse)
 async def set_user_balance(
     data: UserAddBalance, # Reuse the schema from add-balance
-    admin_user: User = Depends(get_current_user_dep),
+    admin_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -57,7 +57,7 @@ async def set_user_balance(
 @router.post("/promo-codes", response_model=PromoCodeResponse)
 async def create_promo_code(
     promo_data: PromoCodeCreate,
-    admin_user: User = Depends(get_current_user_dep),
+    admin_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -86,7 +86,7 @@ async def create_promo_code(
 
 @router.get("/promo-codes", response_model=List[PromoCodeResponse])
 async def get_all_promo_codes(
-    admin_user: User = Depends(get_current_user_dep),
+    admin_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -102,7 +102,7 @@ async def get_all_promo_codes(
 @router.delete("/promo-codes/{code_id}", response_model=MessageResponse)
 async def deactivate_promo_code(
     code_id: int,
-    admin_user: User = Depends(get_current_user_dep),
+    admin_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """

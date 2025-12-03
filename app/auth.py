@@ -9,6 +9,8 @@ from app.models import User
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
+from app.database import get_db
+
 # --- CONFIGURATION ---
 SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_that_should_be_in_env")
 ALGORITHM = "HS256"
@@ -36,8 +38,8 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-# --- AUTHENTICATION ---
-def get_current_user(token: str, db: Session):
+# --- AUTHENTICATION DEPENDENCY ---
+async def get_current_active_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid authentication credentials",
@@ -55,6 +57,9 @@ def get_current_user(token: str, db: Session):
     
     if user is None:
         raise credentials_exception
+    
+    # You could add a check here for user.is_active if you have such a field
+    
     return user
 
 # --- CODE GENERATION ---
