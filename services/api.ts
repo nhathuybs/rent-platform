@@ -74,5 +74,15 @@ export const api = {
     assignProduct: (user_email: string, product_id: number) => request(`/orders/admin/assign?user_email=${user_email}&product_id=${product_id}`, { method: "POST" }),
     updateOrder: (order_id: number, data: { expires_at: string }) => request(`/orders/admin/${order_id}`, { method: "PUT", body: JSON.stringify(data) }),
     revokeOrder: (order_id: number) => request(`/orders/admin/revoke/${order_id}`, { method: "DELETE" }),
-  }
+
+    // Announcements
+    getAnnouncements: () => request<any[]>("/admin/announcements"),
+    createAnnouncement: (data: { title: string, content: string, is_active?: boolean }) => request("/admin/announcements", { method: "POST", body: JSON.stringify(data) }),
+    updateAnnouncement: (id: number, data: { title?: string, content?: string, is_active?: boolean }) => request(`/admin/announcements/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    toggleAnnouncement: (id: number) => request(`/admin/announcements/${id}/toggle`, { method: "PUT" }),
+    deleteAnnouncement: (id: number) => request(`/admin/announcements/${id}`, { method: "DELETE" }),
+  },
+
+  // Public Announcements
+  getActiveAnnouncements: () => request<any[]>("/announcements/active"),
 };

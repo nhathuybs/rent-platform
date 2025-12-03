@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import User, PromotionCode
+from app.models import User, PromotionCode, Announcement
 from app.schemas import (
-    AdminUserDetailResponse, PromoCodeCreate, PromoCodeResponse, MessageResponse, UserAddBalance
+    AdminUserDetailResponse, PromoCodeCreate, PromoCodeResponse, MessageResponse, UserAddBalance,
+    AnnouncementCreate, AnnouncementUpdate, AnnouncementResponse
 )
 from app.auth import get_current_active_user
 from sqlalchemy.orm import selectinload
@@ -122,3 +123,106 @@ async def deactivate_promo_code(
     db.commit()
 
     return MessageResponse(message=f"Promotion code '{code_to_deactivate.code}' has been deactivated.")
+
+
+# --- Announcement Endpoints ---
+
+@router.get("/announcements", response_model=List[AnnouncementResponse])
+async def get_all_announcements(
+    admin_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get all announcements (admin only)."""
+    if admin_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+    
+    announcements = db.query(Announcement).order_by(Announcement.created_at.desc()).all()
+    return announcements
+
+
+@router.post("/announcements", response_model=AnnouncementResponse)
+async def create_announcement(
+    data: AnnouncementCreate,
+    admin_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new announcement (admin only)."""
+    if admin_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+    
+    new_announcement = Announcement(
+        title=data.title,
+        content=data.content,
+        is_active=data.is_active
+    )
+    db.add(new_announcement)
+    db.commit()
+    db.refresh(new_announcement)
+    
+    return new_announcement
+
+
+@router.put("/announcements/{announcement_id}", response_model=AnnouncementResponse)
+async def update_announcement(
+    announcement_id: int,
+    data: AnnouncementUpdate,
+    admin_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Update an announcement (admin only)."""
+    if admin_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+    
+    announcement = db.query(Announcement).filter(Announcement.id == announcement_id).first()
+    if not announcement:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Announcement not found.")
+    
+    update_data = data.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(announcement, key, value)
+    
+    db.commit()
+    db.refresh(announcement)
+    
+    return announcement
+
+
+@router.put("/announcements/{announcement_id}/toggle", response_model=AnnouncementResponse)
+async def toggle_announcement(
+    announcement_id: int,
+    admin_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Toggle announcement active status (admin only)."""
+    if admin_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+    
+    announcement = db.query(Announcement).filter(Announcement.id == announcement_id).first()
+    if not announcement:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Announcement not found.")
+    
+    announcement.is_active = not announcement.is_active
+    db.commit()
+    db.refresh(announcement)
+    
+    return announcement
+
+
+@router.delete("/announcements/{announcement_id}", response_model=MessageResponse)
+async def delete_announcement(
+    announcement_id: int,
+    admin_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Delete an announcement (admin only)."""
+    if admin_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+    
+    announcement = db.query(Announcement).filter(Announcement.id == announcement_id).first()
+    if not announcement:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Announcement not found.")
+    
+    db.delete(announcement)
+    db.commit()
+    
+    return MessageResponse(message="Announcement deleted successfully.")

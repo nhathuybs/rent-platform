@@ -162,3 +162,28 @@ class AdminUserDetailResponse(UserResponse):
 class OrderUpdate(BaseModel):
     expires_at: datetime
 
+
+# --- Announcement Schemas ---
+
+class AnnouncementCreate(BaseModel):
+    title: str = Field(..., max_length=255)
+    content: str
+    is_active: bool = True
+
+
+class AnnouncementUpdate(BaseModel):
+    title: Optional[str] = Field(None, max_length=255)
+    content: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class AnnouncementResponse(BaseModel):
+    id: int
+    title: str
+    content: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

@@ -193,9 +193,11 @@ const AuthPage: React.FC<{ mode: 'login' | 'register' | 'verify' | 'forgot' | 'r
 const Dashboard: React.FC = () => {
     const { user, updateUser } = useAuth();
     const [products, setProducts] = useState<ProductListItem[]>([]);
+    const [announcements, setAnnouncements] = useState<any[]>([]);
     
     useEffect(() => {
         api.getProducts().then(setProducts).catch(e => console.error(e));
+        api.getActiveAnnouncements().then(setAnnouncements).catch(e => console.error(e));
     }, []);
 
     const handleBuy = async (product: ProductListItem) => {
@@ -212,6 +214,18 @@ const Dashboard: React.FC = () => {
     
     return (
         <div className="container mx-auto px-4 py-8">
+            {/* Announcement Banner */}
+            {announcements.length > 0 && (
+                <div className="mb-6 space-y-3">
+                    {announcements.map(a => (
+                        <div key={a.id} className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                            <h3 className="font-bold text-yellow-800">{a.title}</h3>
+                            <p className="text-yellow-700 text-sm whitespace-pre-wrap">{a.content}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+            
             <h1 className="text-2xl font-bold mb-6">Sản phẩm có sẵn</h1>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {products.map(p => (
@@ -743,6 +757,119 @@ const AdminPromoManagement: React.FC = () => {
     );
 };
 
+// --- ADMIN ANNOUNCEMENT MANAGEMENT ---
+interface Announcement {
+    id: number;
+    title: string;
+    content: string;
+    is_active: boolean;
+    created_at: string;
+}
+
+const AdminAnnouncementManagement: React.FC = () => {
+    const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+    const [newAnnouncement, setNewAnnouncement] = useState({ title: '', content: '' });
+    
+    const fetchAnnouncements = useCallback(async () => {
+        try {
+            const data = await api.admin.getAnnouncements();
+            setAnnouncements(data);
+        } catch (e) { alert('Failed to fetch announcements'); }
+    }, []);
+
+    useEffect(() => {
+        fetchAnnouncements();
+    }, [fetchAnnouncements]);
+
+    const handleCreate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newAnnouncement.title.trim() || !newAnnouncement.content.trim()) {
+            alert('Vui lòng nhập tiêu đề và nội dung');
+            return;
+        }
+        try {
+            await api.admin.createAnnouncement(newAnnouncement);
+            alert('Thông báo đã được tạo!');
+            setNewAnnouncement({ title: '', content: '' });
+            fetchAnnouncements();
+        } catch (e: any) { alert(e.message); }
+    };
+    
+    const handleToggle = async (id: number) => {
+        try {
+            await api.admin.toggleAnnouncement(id);
+            fetchAnnouncements();
+        } catch (e: any) { alert(e.message); }
+    };
+    
+    const handleDelete = async (id: number) => {
+        if (window.confirm('Bạn có chắc muốn xóa thông báo này?')) {
+            try {
+                await api.admin.deleteAnnouncement(id);
+                alert('Đã xóa thông báo!');
+                fetchAnnouncements();
+            } catch (e: any) { alert(e.message); }
+        }
+    };
+
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <h1 className="text-2xl font-bold mb-6">Quản lý thông báo</h1>
+            <div className="grid md:grid-cols-2 gap-8">
+                <div className="bg-white p-6 rounded-lg shadow border">
+                    <h2 className="text-lg font-semibold mb-4">Tạo thông báo mới</h2>
+                    <form onSubmit={handleCreate} className="space-y-4">
+                        <Input 
+                            label="Tiêu đề" 
+                            value={newAnnouncement.title} 
+                            onChange={e => setNewAnnouncement(p => ({ ...p, title: e.target.value }))} 
+                            required 
+                        />
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Nội dung</label>
+                            <textarea
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                rows={4}
+                                value={newAnnouncement.content}
+                                onChange={e => setNewAnnouncement(p => ({ ...p, content: e.target.value }))}
+                                required
+                            />
+                        </div>
+                        <Button type="submit">Tạo thông báo</Button>
+                    </form>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow border">
+                    <h2 className="text-lg font-semibold mb-4">Danh sách thông báo</h2>
+                    <div className="overflow-y-auto max-h-96 space-y-4">
+                        {announcements.length === 0 ? (
+                            <p className="text-gray-500 text-center py-4">Chưa có thông báo nào</p>
+                        ) : (
+                            announcements.map(a => (
+                                <div key={a.id} className={`p-4 border rounded-lg ${a.is_active ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-50'}`}>
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h3 className="font-semibold">{a.title}</h3>
+                                        <span className={`text-xs px-2 py-1 rounded ${a.is_active ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'}`}>
+                                            {a.is_active ? 'Đang hiện' : 'Đã ẩn'}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mb-2 whitespace-pre-wrap">{a.content}</p>
+                                    <p className="text-xs text-gray-400 mb-3">{formatDate(a.created_at)}</p>
+                                    <div className="flex gap-2">
+                                        <Button size="sm" variant={a.is_active ? 'secondary' : 'primary'} onClick={() => handleToggle(a.id)}>
+                                            {a.is_active ? 'Ẩn' : 'Hiện'}
+                                        </Button>
+                                        <Button size="sm" variant="danger" onClick={() => handleDelete(a.id)}>Xóa</Button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- LAYOUT & ROUTING ---
 const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout, loading } = useAuth();
@@ -793,6 +920,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/products/edit/:id" element={<ProtectedLayout><AdminRoute><AdminProductForm mode="edit" /></AdminRoute></ProtectedLayout>} />
             <Route path="/admin/users" element={<ProtectedLayout><AdminRoute><AdminUserManagement /></AdminRoute></ProtectedLayout>} />
             <Route path="/admin/promos" element={<ProtectedLayout><AdminRoute><AdminPromoManagement /></AdminRoute></ProtectedLayout>} />
+            <Route path="/admin/announcements" element={<ProtectedLayout><AdminRoute><AdminAnnouncementManagement /></AdminRoute></ProtectedLayout>} />
 
             <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>

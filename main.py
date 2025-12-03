@@ -1,7 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import init_db, SessionLocal
+from sqlalchemy.orm import Session
+from app.database import init_db, SessionLocal, get_db
 from app.routers import users, products, orders, admin
+from app.models import Announcement
 from create_admin import create_default_admin
 
 # Initialize database
@@ -62,6 +64,18 @@ async def root():
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
+
+
+@app.get("/announcements/active")
+async def get_active_announcements(db: Session = Depends(get_db)):
+    """Get all active announcements (public endpoint)."""
+    announcements = db.query(Announcement).filter(Announcement.is_active == True).order_by(Announcement.created_at.desc()).all()
+    return [{
+        "id": a.id,
+        "title": a.title,
+        "content": a.content,
+        "created_at": a.created_at.isoformat() if a.created_at else None
+    } for a in announcements]
 
 
 if __name__ == "__main__":
