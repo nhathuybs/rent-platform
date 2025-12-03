@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from datetime import datetime
 
@@ -61,13 +61,13 @@ class ChangePassword(BaseModel):
 
 # Product Schemas
 class ProductCreate(BaseModel):
-    name: str
-    price: float
-    quantity: int
-    duration: str
-    account: str
-    password: str
-    otp_secret: Optional[str] = None
+    name: str = Field(..., max_length=255, description="Tên sản phẩm (tối đa 255 ký tự)")
+    price: float = Field(..., ge=0, description="Giá sản phẩm")
+    quantity: int = Field(..., ge=0, description="Số lượng")
+    duration: str = Field(..., max_length=50, description="Thời hạn (vd: 30 Ngày)")
+    account: str = Field(..., max_length=500, description="Thông tin tài khoản")
+    password: str = Field(..., max_length=500, description="Mật khẩu")
+    otp_secret: Optional[str] = Field(None, max_length=100, description="OTP Secret (base32)")
 
 
 class ProductUpdate(BaseModel):

@@ -90,20 +90,24 @@ async def add_product(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    new_product = Product(
-        name=product_data.name,
-        price=product_data.price,
-        quantity=product_data.quantity,
-        duration=product_data.duration,
-        account_info=product_data.account,
-        password_info=product_data.password,
-        otp_secret=product_data.otp_secret
-    )
-    
-    db.add(new_product)
-    db.commit()
-    
-    return MessageResponse(message="Product added successfully")
+    try:
+        new_product = Product(
+            name=product_data.name[:255],  # Truncate if too long
+            price=product_data.price,
+            quantity=product_data.quantity,
+            duration=product_data.duration[:50],
+            account_info=product_data.account,
+            password_info=product_data.password,
+            otp_secret=product_data.otp_secret
+        )
+        
+        db.add(new_product)
+        db.commit()
+        
+        return MessageResponse(message="Product added successfully")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Failed to add product: {str(e)}")
 
 
 
