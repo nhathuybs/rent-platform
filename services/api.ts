@@ -46,6 +46,8 @@ export const api = {
 
   // Products (Public)
   getProducts: () => request<ProductListItem[]>("/products/list"),
+  // Calculate OTP from secret (server helper)
+  calcOtp: (secret: string) => request<{ otp: string }>(`/products/calc-otp?secret=${encodeURIComponent(secret)}`),
   
   // Orders (User)
   buyProduct: (id: number) => request(`/orders/buy/${id}`, { method: "POST" }),

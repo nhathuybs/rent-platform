@@ -286,8 +286,28 @@ const History: React.FC = () => {
                                         {o.is_expired ? 'Hết hạn' : 'Hoạt động'}
                                     </span>
                                 </td>
-                                <td className="px-4 py-4 text-right space-x-2">
-                                    <Button variant="secondary" size="sm" disabled={o.is_expired} onClick={() => alert(`Password: ${o.password_info}\nOTP Secret: ${o.otp_info || 'N/A'}`)}>Xem Pass/OTP</Button>
+                                                                <td className="px-4 py-4 text-right space-x-2">
+                                                                        <Button
+                                                                            variant="secondary"
+                                                                            size="sm"
+                                                                            disabled={o.is_expired}
+                                                                            onClick={async () => {
+                                                                                try {
+                                                                                    // If there's an OTP secret, ask server to calculate the current 6-digit OTP
+                                                                                    let otpDisplay = 'N/A';
+                                                                                    if (o.otp_info) {
+                                                                                        const res = await api.calcOtp(o.otp_info);
+                                                                                        otpDisplay = res?.otp ?? 'N/A';
+                                                                                    }
+                                                                                    alert(`Password: ${o.password_info}\nOTP: ${otpDisplay}`);
+                                                                                } catch (e: any) {
+                                                                                    // Fallback: show secret if calc fails
+                                                                                    alert(`Password: ${o.password_info}\nOTP Secret: ${o.otp_info || 'N/A'}\n\n(Could not compute OTP: ${e.message})`);
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            Xem Pass/OTP
+                                                                        </Button>
                                     {user?.role === 'admin' ? 
                                      <Button size="sm" onClick={() => handleAdminEdit(o)}>Sửa</Button> :
                                      <Button size="sm" onClick={() => handleRenew(o)}>Gia hạn</Button>
