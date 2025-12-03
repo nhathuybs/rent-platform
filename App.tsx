@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, createContext, useContext } fr
 import { HashRouter, Routes, Route, Navigate, useNavigate, Link, useParams } from 'react-router-dom';
 import { api } from './services/api';
 import { User, ProductListItem, Order, PromoCode } from './types';
-import { Navbar, Button, Input, Modal } from './components/Layout';
+import { Navbar, Button, Input } from './components/Layout';
 
 // --- UTILITY & FORMATTER ---
 const formatVND = (price: number) => price.toLocaleString('vi-VN') + ' VND';
@@ -238,11 +238,7 @@ const History: React.FC = () => {
     const { user, updateUser } = useAuth();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
-    const [modalOpen, setModalOpen] = useState(false);
-    const [modalOrder, setModalOrder] = useState<Order | null>(null);
-    const [modalOtp, setModalOtp] = useState<string | null>(null);
-    const [modalLoading, setModalLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
+    // Removed modal UI state — using in-cell OTP display instead
     const [otpCache, setOtpCache] = useState<Record<number, string>>({});
     const [otpLoading, setOtpLoading] = useState<Record<number, boolean>>({});
 
@@ -269,21 +265,7 @@ const History: React.FC = () => {
         } catch (e: any) { alert(e.message); }
     };
     
-    const openRevealModal = async (order: Order) => {
-        setModalOrder(order);
-        setModalOpen(true);
-        setShowPassword(false);
-        setModalOtp(null);
-        if (order.otp_info) {
-            setModalLoading(true);
-            try {
-                const res = await api.calcOtp(order.otp_info);
-                setModalOtp(res?.otp ?? null);
-            } catch (e: any) {
-                setModalOtp(null);
-            } finally { setModalLoading(false); }
-        }
-    };
+    // openRevealModal removed — no modal-based reveal needed
 
     const handleAdminEdit = async (order: Order) => {
         const newDateStr = prompt("Nhập ngày hết hạn mới (YYYY-MM-DD HH:MM:SS):", new Date(order.expires_at || Date.now()).toISOString().slice(0, 19).replace('T', ' '));
