@@ -19,6 +19,8 @@ export interface ProductListItem {
   price: number;
   quantity: number;
   duration: string;
+  is_deleted?: boolean;
+  deleted_at?: string | null;
 }
 
 // This interface includes all details, used for the edit form

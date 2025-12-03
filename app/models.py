@@ -42,6 +42,8 @@ class Product(Base):
     password_info = Column(String, nullable=False)
     otp_secret = Column(String, nullable=True)  # For 2FA/OTP generation
     created_at = Column(DateTime, default=datetime.utcnow)
+    is_deleted = Column(Boolean, default=False)
+    deleted_at = Column(DateTime, nullable=True)
 
     orders = relationship("Order", back_populates="product")
 

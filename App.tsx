@@ -417,7 +417,8 @@ const AdminProductManagement: React.FC = () => {
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const data = await api.getProducts();
+                // Admin should see all products including soft-deleted ones
+                const data = await api.getAdminProducts();
                 setProducts(data);
             } catch (error) {
                 console.error("Failed to fetch products", error);
@@ -453,10 +454,11 @@ const AdminProductManagement: React.FC = () => {
                                 <td className="px-4 py-4">{formatVND(p.price)}</td>
                                 <td className="px-4 py-4">{p.duration}</td>
                                 <td className="px-4 py-4">{p.quantity}</td>
+                                <td className="px-4 py-4">{p.is_deleted ? 'Deleted' : 'Active'}</td>
                                 <td className="px-4 py-4 text-right">
                                     <div className="flex justify-end gap-2">
                                         <Button size="sm" onClick={() => navigate(`/admin/products/edit/${p.id}`)}>Edit</Button>
-                                        <Button size="sm" variant="secondary" onClick={async () => {
+                                        <Button size="sm" variant="secondary" disabled={p.is_deleted} onClick={async () => {
                                             const email = prompt(`Nhập email user để gán sản phẩm #${p.id} - ${p.name}:`);
                                             if (!email) return;
                                             try {
@@ -467,13 +469,14 @@ const AdminProductManagement: React.FC = () => {
                                                 alert('Gán sản phẩm thất bại');
                                             }
                                         }}>Assign</Button>
-                                        <Button size="sm" variant="danger" onClick={async () => {
+                                        <Button size="sm" variant="danger" disabled={p.is_deleted} onClick={async () => {
                                             if (!confirm(`Xóa sản phẩm #${p.id} - ${p.name}?`)) return;
                                             try {
                                                 await api.admin.deleteProduct(p.id);
-                                                // remove from local list
-                                                setProducts(prev => prev.filter(px => px.id !== p.id));
-                                                alert('Product deleted');
+                                                // refresh products
+                                                const refreshed = await api.getAdminProducts();
+                                                setProducts(refreshed);
+                                                alert('Product soft-deleted');
                                             } catch (err) {
                                                 console.error(err);
                                                 alert('Failed to delete product');

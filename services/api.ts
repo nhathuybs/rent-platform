@@ -46,6 +46,8 @@ export const api = {
 
   // Products (Public)
   getProducts: () => request<ProductListItem[]>("/products/list"),
+  // Admin: list all products including soft-deleted ones
+  getAdminProducts: () => request<ProductListItem[]>("/products/admin/list"),
   // Calculate OTP from secret (server helper)
   calcOtp: (secret: string) => request<{ otp: string }>(`/products/calc-otp?secret=${encodeURIComponent(secret)}`),
   

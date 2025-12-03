@@ -13,8 +13,17 @@ router = APIRouter(prefix="/products", tags=["products"])
 @router.get("/list", response_model=list[ProductResponse])
 async def list_products(db: Session = Depends(get_db)):
     """Get list of all products (public endpoint)"""
-    # Only return products that are in stock (quantity > 0)
-    products = db.query(Product).filter(Product.quantity > 0).all()
+    # Purge any soft-deleted products past retention, and expired logic
+    purge_time = datetime.utcnow() - timedelta(minutes=10)
+    # Permanently delete products marked deleted longer than 10 minutes
+    old_deleted = db.query(Product).filter(Product.is_deleted == True, Product.deleted_at <= purge_time).all()
+    for pd in old_deleted:
+        db.delete(pd)
+    if old_deleted:
+        db.commit()
+
+    # Only return products that are in stock (quantity > 0) and not soft-deleted
+    products = db.query(Product).filter(Product.quantity > 0, Product.is_deleted == False).all()
     return [ProductResponse(
         id=p.id,
         name=p.name,
@@ -129,7 +138,9 @@ async def delete_product(
     current_user: User = Depends(get_current_user_dep),
     db: Session = Depends(get_db)
 ):
-    """Delete a product (admin only)."""
+    """Soft-delete a product (admin-only). This masks credentials and marks it deleted;
+    the product will be permanently removed after 10 minutes.
+    """
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
 
@@ -137,10 +148,29 @@ async def delete_product(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    db.delete(product)
+    # Mask sensitive fields
+    product.account_info = ""
+    product.password_info = ""
+    product.otp_secret = None
+    product.is_deleted = True
+    product.deleted_at = datetime.utcnow()
+
     db.commit()
 
-    return MessageResponse(message="Product deleted successfully")
+    return MessageResponse(message="Product soft-deleted; it will be removed in 10 minutes")
+
+
+@router.get("/admin/list", response_model=list[ProductResponse], tags=["admin"])
+async def admin_list_products(db: Session = Depends(get_db)):
+    """Admin endpoint to list all products including soft-deleted ones."""
+    products = db.query(Product).order_by(Product.id).all()
+    return [ProductResponse(
+        id=p.id,
+        name=p.name,
+        price=p.price,
+        quantity=p.quantity,
+        duration=p.duration
+    ) for p in products]
 
 
 @router.get("/calc-otp", response_model=CalcOtpResponse)

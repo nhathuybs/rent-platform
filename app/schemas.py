@@ -86,9 +86,14 @@ class ProductResponse(BaseModel):
     price: float
     quantity: int
     duration: str
+    account_info: str | None = None
+    password_info: str | None = None
+    otp_secret: str | None = None
+    is_deleted: bool = False
+    deleted_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class CalcOtpResponse(BaseModel):
