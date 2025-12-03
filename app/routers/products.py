@@ -13,7 +13,8 @@ router = APIRouter(prefix="/products", tags=["products"])
 @router.get("/list", response_model=list[ProductResponse])
 async def list_products(db: Session = Depends(get_db)):
     """Get list of all products (public endpoint)"""
-    products = db.query(Product).all()
+    # Only return products that are in stock (quantity > 0)
+    products = db.query(Product).filter(Product.quantity > 0).all()
     return [ProductResponse(
         id=p.id,
         name=p.name,
