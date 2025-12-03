@@ -11,7 +11,7 @@ from app.models import User
 router = APIRouter(prefix="/products", tags=["products"])
 
 
-@router.get("/list", response_model=list[ProductPublicResponse])
+@router.get("/list")
 async def list_products(db: Session = Depends(get_db)):
     """Get list of all products (public endpoint)"""
     # Purge any soft-deleted products past retention, and expired logic
@@ -26,18 +26,16 @@ async def list_products(db: Session = Depends(get_db)):
     # Only return products that are in stock (quantity > 0) and not soft-deleted
     products_from_db = db.query(Product).filter(Product.quantity > 0, Product.is_deleted == False).all()
 
-    # Manually construct the response to handle potential None values in the DB
+    # Return raw dict response bypassing Pydantic validation
     response_list = []
     for p in products_from_db:
-        response_list.append(
-            ProductPublicResponse(
-                id=p.id,
-                name=p.name or "N/A",
-                price=p.price if p.price is not None else 0.0,
-                quantity=p.quantity if p.quantity is not None else 0,
-                duration=p.duration or "N/A",
-            )
-        )
+        response_list.append({
+            "id": p.id,
+            "name": p.name or "N/A",
+            "price": float(p.price) if p.price is not None else 0.0,
+            "quantity": int(p.quantity) if p.quantity is not None else 0,
+            "duration": p.duration or "N/A",
+        })
     return response_list
 
 
@@ -168,7 +166,7 @@ async def delete_product(
     return MessageResponse(message="Product soft-deleted; it will be removed in 10 minutes")
 
 
-@router.get("/admin/list", response_model=list[ProductResponse], tags=["admin"])
+@router.get("/admin/list", tags=["admin"])
 async def admin_list_products(
     current_user: User = Depends(get_current_user_dep),
     db: Session = Depends(get_db)
@@ -179,24 +177,22 @@ async def admin_list_products(
 
     products = db.query(Product).order_by(Product.id).all()
     
-    # Manually construct the response to handle potential None values in the DB
-    # that would violate the Pydantic model.
+    # Return raw dict response bypassing Pydantic validation to avoid 422 errors
+    # caused by potential NULL values or type mismatches in the database
     response_list = []
     for p in products:
-        response_list.append(
-            ProductResponse(
-                id=p.id,
-                name=p.name or "N/A",  # Provide default value
-                price=p.price if p.price is not None else 0.0, # Provide default value
-                quantity=p.quantity if p.quantity is not None else 0, # Provide default value
-                duration=p.duration or "N/A", # Provide default value
-                account_info=p.account_info,
-                password_info=p.password_info,
-                otp_secret=p.otp_secret,
-                is_deleted=p.is_deleted,
-                deleted_at=p.deleted_at,
-            )
-        )
+        response_list.append({
+            "id": p.id,
+            "name": p.name or "N/A",
+            "price": float(p.price) if p.price is not None else 0.0,
+            "quantity": int(p.quantity) if p.quantity is not None else 0,
+            "duration": p.duration or "N/A",
+            "account_info": p.account_info or None,
+            "password_info": p.password_info or None,
+            "otp_secret": p.otp_secret or None,
+            "is_deleted": bool(p.is_deleted) if p.is_deleted is not None else False,
+            "deleted_at": p.deleted_at.isoformat() if p.deleted_at else None,
+        })
     return response_list
 
 
