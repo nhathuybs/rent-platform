@@ -126,8 +126,14 @@ const AuthPage: React.FC<{ mode: 'login' | 'register' | 'verify' | 'forgot' | 'r
             {mode === 'register' && <Input id="confirm" type="password" label="Nhập lại mật khẩu" value={formData.confirm} onChange={handleChange} required />}
             <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? "Đang xử lý..." : "Xác Nhận"}</Button>
         </form>
-        <div className="mt-6 text-center text-sm">
-            <Link to="/login" className="text-brand-600 hover:underline">Quay lại Đăng nhập</Link>
+        <div className="mt-6 text-center text-sm text-gray-600">
+          {mode !== 'login' ? <Link to="/login" className="text-brand-600 hover:underline">Quay lại Đăng nhập</Link> :
+            <span className="space-x-2">
+              <Link to="/register" className="text-brand-600 hover:underline">Đăng ký mới</Link>
+              <span>|</span>
+              <Link to="/forgot-password" className="text-brand-600 hover:underline">Quên mật khẩu?</Link>
+            </span>
+          }
         </div>
       </div>
     </div>
