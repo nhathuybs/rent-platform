@@ -53,14 +53,15 @@ async def list_products(db: Session = Depends(get_db)):
     response_list = []
     for p in products_from_db:
         # Check if product is currently rented (has active non-expired orders)
+        # This includes both purchased and admin-assigned orders
         now = datetime.utcnow()
         active_rentals = db.query(Order).filter(
             Order.product_id == p.id,
             Order.expires_at > now
         ).count()
         
-        # Product is available if quantity > 0 OR no active rentals
-        is_rented = active_rentals > 0 and p.quantity <= 0
+        # Product is "rented" if there are active rentals
+        is_rented = active_rentals > 0
         
         response_list.append({
             "id": p.id,

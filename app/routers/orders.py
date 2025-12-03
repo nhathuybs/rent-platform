@@ -182,7 +182,7 @@ async def admin_assign_product(
     new_order = Order(
         user_id=user.id,
         product_id=product.id,
-        product_name=f"[Assigned by Admin] {product.name}",
+        product_name=product.name,
         price=0, # Assigned for free
         account_info=product.account_info,
         password_info=product.password_info,
