@@ -24,8 +24,21 @@ async def list_products(db: Session = Depends(get_db)):
         db.commit()
 
     # Only return products that are in stock (quantity > 0) and not soft-deleted
-    products = db.query(Product).filter(Product.quantity > 0, Product.is_deleted == False).all()
-    return products
+    products_from_db = db.query(Product).filter(Product.quantity > 0, Product.is_deleted == False).all()
+
+    # Manually construct the response to handle potential None values in the DB
+    response_list = []
+    for p in products_from_db:
+        response_list.append(
+            ProductPublicResponse(
+                id=p.id,
+                name=p.name or "N/A",
+                price=p.price if p.price is not None else 0.0,
+                quantity=p.quantity if p.quantity is not None else 0,
+                duration=p.duration or "N/A",
+            )
+        )
+    return response_list
 
 
 @router.post("/add", response_model=MessageResponse)
@@ -165,7 +178,26 @@ async def admin_list_products(
         raise HTTPException(status_code=403, detail="Admin access required")
 
     products = db.query(Product).order_by(Product.id).all()
-    return products
+    
+    # Manually construct the response to handle potential None values in the DB
+    # that would violate the Pydantic model.
+    response_list = []
+    for p in products:
+        response_list.append(
+            ProductResponse(
+                id=p.id,
+                name=p.name or "N/A",  # Provide default value
+                price=p.price if p.price is not None else 0.0, # Provide default value
+                quantity=p.quantity if p.quantity is not None else 0, # Provide default value
+                duration=p.duration or "N/A", # Provide default value
+                account_info=p.account_info,
+                password_info=p.password_info,
+                otp_secret=p.otp_secret,
+                is_deleted=p.is_deleted,
+                deleted_at=p.deleted_at,
+            )
+        )
+    return response_list
 
 
 @router.get("/calc-otp", response_model=CalcOtpResponse)
