@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Order, Product, User
-from app.schemas import OrderResponse, MessageResponse
+from app.schemas import OrderResponse, MessageResponse, OrderUpdate
 from app.routers.users import get_current_user_dep
 from datetime import datetime, timedelta
 import re
