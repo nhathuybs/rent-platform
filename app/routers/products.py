@@ -4,14 +4,14 @@ from sqlalchemy.orm import Session
 import pyotp
 from app.database import get_db
 from app.models import Product
-from app.schemas import ProductCreate, ProductUpdate, ProductResponse, CalcOtpResponse, MessageResponse
+from app.schemas import ProductCreate, ProductUpdate, ProductResponse, CalcOtpResponse, MessageResponse, ProductPublicResponse
 from app.routers.users import get_current_user_dep
 from app.models import User
 
 router = APIRouter(prefix="/products", tags=["products"])
 
 
-@router.get("/list", response_model=list[ProductResponse])
+@router.get("/list", response_model=list[ProductPublicResponse])
 async def list_products(db: Session = Depends(get_db)):
     """Get list of all products (public endpoint)"""
     # Purge any soft-deleted products past retention, and expired logic
@@ -25,13 +25,7 @@ async def list_products(db: Session = Depends(get_db)):
 
     # Only return products that are in stock (quantity > 0) and not soft-deleted
     products = db.query(Product).filter(Product.quantity > 0, Product.is_deleted == False).all()
-    return [ProductResponse(
-        id=p.id,
-        name=p.name,
-        price=p.price,
-        quantity=p.quantity,
-        duration=p.duration
-    ) for p in products]
+    return products
 
 
 @router.post("/add", response_model=MessageResponse)
@@ -162,16 +156,16 @@ async def delete_product(
 
 
 @router.get("/admin/list", response_model=list[ProductResponse], tags=["admin"])
-async def admin_list_products(db: Session = Depends(get_db)):
+async def admin_list_products(
+    current_user: User = Depends(get_current_user_dep),
+    db: Session = Depends(get_db)
+):
     """Admin endpoint to list all products including soft-deleted ones."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
     products = db.query(Product).order_by(Product.id).all()
-    return [ProductResponse(
-        id=p.id,
-        name=p.name,
-        price=p.price,
-        quantity=p.quantity,
-        duration=p.duration
-    ) for p in products]
+    return products
 
 
 @router.get("/calc-otp", response_model=CalcOtpResponse)

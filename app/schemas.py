@@ -93,7 +93,18 @@ class ProductResponse(BaseModel):
     deleted_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+
+class ProductPublicResponse(BaseModel):
+    id: int
+    name: str
+    price: float
+    quantity: int
+    duration: str
+
+    class Config:
+        from_attributes = True
 
 
 class CalcOtpResponse(BaseModel):
