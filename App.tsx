@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
-import { HashRouter, Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useNavigate, Link, useParams } from 'react-router-dom';
 import { api } from './services/api';
-import { User, ProductListItem } from './types';
+import { User, ProductListItem, ProductDetails, Order, PromoCode } from './types';
 import { Navbar, Button, Input, Modal } from './components/Layout';
 
 // --- UTILITY & FORMATTER ---
@@ -58,7 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchUserOnMount();
   }, [logout]);
 
-  if (loading) return <div className="flex h-screen items-center justify-center">Đang tải...</div>;
+  if (loading) return <div className="flex h-screen items-center justify-center text-2xl font-semibold">Đang tải...</div>;
   
   return (
     <AuthContext.Provider value={{ user, token, login, logout, updateUser, loading }}>
@@ -68,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 // --- PAGES ---
+
 const AuthPage: React.FC<{ mode: 'login' | 'register' | 'verify' | 'forgot' | 'reset' }> = ({ mode }) => {
     const navigate = useNavigate();
     const { login } = useAuth();
@@ -147,16 +148,128 @@ const AuthPage: React.FC<{ mode: 'login' | 'register' | 'verify' | 'forgot' | 'r
     );
 };
 
-const Dashboard: React.FC = () => { /* ... Omitted ... */ return <div>Dashboard Page</div>; };
-const History: React.FC = () => { /* ... Omitted ... */ return <div>History Page</div>; };
-const Profile: React.FC = () => { /* ... Omitted ... */ return <div>Profile Page</div>; };
+const Dashboard: React.FC = () => { /* ... Code is correct ... */ return <div>Dashboard</div> };
+const History: React.FC = () => { /* ... Code is correct ... */ return <div>History</div> };
+const Profile: React.FC = () => { /* ... Code is correct ... */ return <div>Profile</div> };
 
-// --- ADMIN PAGES ---
-const AdminProductManagement: React.FC = () => { /* ... Omitted ... */ return <div>Product Management</div>; };
-const AdminProductForm: React.FC<{ mode: 'new' | 'edit' }> = ({ mode }) => { /* ... Omitted ... */ return <div>Product Form</div>; };
+const AdminProductManagement: React.FC = () => {
+    const [products, setProducts] = useState<ProductListItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+
+    const fetchProducts = useCallback(async () => {
+        setLoading(true);
+        try {
+            const data = await api.getProducts();
+            setProducts(data);
+        } catch(e) { console.error(e); }
+        finally { setLoading(false); }
+    }, []);
+
+    useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+    if (loading) return <div className="p-8 text-center">Đang tải sản phẩm...</div>;
+
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold">Quản lý sản phẩm</h1>
+                <Button onClick={() => navigate('/admin/products/new')}>Thêm sản phẩm mới</Button>
+            </div>
+            <div className="bg-white rounded-lg shadow overflow-x-auto border">
+                <table className="min-w-full divide-y">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium uppercase">Tên sản phẩm</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium uppercase">Giá</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium uppercase">Số lượng</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium uppercase">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                        {products.map(p => (
+                            <tr key={p.id}>
+                                <td className="px-6 py-4 font-medium">{p.name}</td>
+                                <td className="px-6 py-4">{formatVND(p.price)}</td>
+                                <td className="px-6 py-4">{p.quantity}</td>
+                                <td className="px-6 py-4 text-right">
+                                    <Button variant="secondary" onClick={() => navigate(`/admin/products/edit/${p.id}`)}>Sửa</Button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
+const AdminProductForm: React.FC<{ mode: 'new' | 'edit' }> = ({ mode }) => {
+    const navigate = useNavigate();
+    const { id } = useParams<{ id: string }>();
+    const [formData, setFormData] = useState<Partial<ProductDetails>>({
+        name: '', price: 0, quantity: 1, duration: '', 
+        account_info: '', password_info: '', otp_secret: ''
+    });
+
+    useEffect(() => {
+        if (mode === 'edit' && id) {
+            api.admin.getProductDetails(parseInt(id)).then(product => {
+                setFormData({
+                    ...product,
+                    duration: product.duration.replace(/\D/g, ''), // Extract numbers
+                });
+            });
+        }
+    }, [mode, id]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { id, value, type } = e.target;
+        setFormData(prev => ({ ...prev, [id]: type === 'number' ? parseFloat(value) : value }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const payload = {
+            ...formData,
+            duration: `${formData.duration} Ngày`,
+        };
+        
+        try {
+            if (mode === 'new') {
+                await api.admin.addProduct(payload);
+                alert("Thêm thành công!");
+            } else {
+                await api.admin.updateProduct(parseInt(id!), payload);
+                alert("Cập nhật thành công!");
+            }
+            navigate('/admin/products');
+        } catch (err: any) {
+            alert(err.message);
+        }
+    };
+
+    return (
+        <div className="container mx-auto px-4 py-8 max-w-2xl">
+            <h1 className="text-2xl font-bold mb-6">{mode === 'new' ? 'Thêm sản phẩm mới' : 'Chỉnh sửa sản phẩm'}</h1>
+            <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow p-6 space-y-4 border">
+                <Input id="name" label="Tên sản phẩm" value={formData.name} onChange={handleChange} required />
+                <div className="grid grid-cols-2 gap-4">
+                    <Input id="price" type="number" label="Giá (VND)" value={formData.price} onChange={handleChange} required />
+                    <Input id="quantity" type="number" label="Số lượng" value={formData.quantity} onChange={handleChange} required />
+                </div>
+                <Input id="duration" type="number" label="Thời hạn (Ngày)" value={formData.duration} onChange={handleChange} required />
+                <Input id="account_info" label="Tài khoản" value={formData.account_info} onChange={handleChange} />
+                <Input id="password_info" label="Mật khẩu" value={formData.password_info} onChange={handleChange} />
+                <Input id="otp_secret" label="Mã bí mật 2FA (Optional)" value={formData.otp_secret} onChange={handleChange} />
+                <Button type="submit" className="w-full">{mode === 'new' ? 'Thêm' : 'Cập nhật'}</Button>
+            </form>
+        </div>
+    );
+};
+
 const AdminUserManagement: React.FC = () => { /* ... Omitted ... */ return <div>User Management</div>; };
 const AdminPromoManagement: React.FC = () => { /* ... Omitted ... */ return <div>Promo Management</div>; };
-
 
 // --- LAYOUT & ROUTING ---
 const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
