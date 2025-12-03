@@ -11,6 +11,36 @@ from app.models import User
 router = APIRouter(prefix="/products", tags=["products"])
 
 
+@router.get("/admin/list", tags=["admin"])
+async def admin_list_products(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Admin endpoint to list all products including soft-deleted ones."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    products = db.query(Product).order_by(Product.id).all()
+    
+    # Return raw dict response bypassing Pydantic validation to avoid 422 errors
+    # caused by potential NULL values or type mismatches in the database
+    response_list = []
+    for p in products:
+        response_list.append({
+            "id": p.id,
+            "name": p.name or "N/A",
+            "price": float(p.price) if p.price is not None else 0.0,
+            "quantity": int(p.quantity) if p.quantity is not None else 0,
+            "duration": p.duration or "N/A",
+            "account_info": p.account_info or None,
+            "password_info": p.password_info or None,
+            "otp_secret": p.otp_secret or None,
+            "is_deleted": bool(p.is_deleted) if p.is_deleted is not None else False,
+            "deleted_at": p.deleted_at.isoformat() if p.deleted_at else None,
+        })
+    return response_list
+
+
 @router.get("/list")
 async def list_products(db: Session = Depends(get_db)):
     """Get list of all products (public endpoint)"""
@@ -164,36 +194,6 @@ async def delete_product(
     db.commit()
 
     return MessageResponse(message="Product soft-deleted; it will be removed in 10 minutes")
-
-
-@router.get("/admin/list", tags=["admin"])
-async def admin_list_products(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
-):
-    """Admin endpoint to list all products including soft-deleted ones."""
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-
-    products = db.query(Product).order_by(Product.id).all()
-    
-    # Return raw dict response bypassing Pydantic validation to avoid 422 errors
-    # caused by potential NULL values or type mismatches in the database
-    response_list = []
-    for p in products:
-        response_list.append({
-            "id": p.id,
-            "name": p.name or "N/A",
-            "price": float(p.price) if p.price is not None else 0.0,
-            "quantity": int(p.quantity) if p.quantity is not None else 0,
-            "duration": p.duration or "N/A",
-            "account_info": p.account_info or None,
-            "password_info": p.password_info or None,
-            "otp_secret": p.otp_secret or None,
-            "is_deleted": bool(p.is_deleted) if p.is_deleted is not None else False,
-            "deleted_at": p.deleted_at.isoformat() if p.deleted_at else None,
-        })
-    return response_list
 
 
 @router.get("/calc-otp", response_model=CalcOtpResponse)
