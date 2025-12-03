@@ -60,6 +60,8 @@ export const api = {
   admin: {
     getUsers: () => request<User[]>("/admin/users"),
     setBalance: (email: string, amount: number) => request("/admin/users/balance", { method: "PUT", body: JSON.stringify({ email, amount }) }),
+    deleteUser: (userId: number) => request(`/admin/users/${userId}`, { method: "DELETE" }),
+    deleteOrder: (orderId: number) => request(`/admin/orders/${orderId}`, { method: "DELETE" }),
     
     getPromos: () => request<PromoCode[]>("/admin/promo-codes"),
     createPromo: (data: { code: string, amount: number }) => request("/admin/promo-codes", { method: "POST", body: JSON.stringify(data) }),

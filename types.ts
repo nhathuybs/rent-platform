@@ -21,6 +21,7 @@ export interface ProductListItem {
   duration: string;
   is_deleted?: boolean;
   deleted_at?: string | null;
+  is_rented?: boolean;
 }
 
 // This interface includes all details, used for the edit form

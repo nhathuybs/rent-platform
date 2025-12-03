@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import User, PromotionCode, Announcement
+from app.models import User, PromotionCode, Announcement, Order
 from app.schemas import (
     AdminUserDetailResponse, PromoCodeCreate, PromoCodeResponse, MessageResponse, UserAddBalance,
     AnnouncementCreate, AnnouncementUpdate, AnnouncementResponse
@@ -53,6 +53,62 @@ async def set_user_balance(
     db.commit()
 
     return MessageResponse(message=f"Successfully set balance for {data.email} to {user_to_update.balance}.")
+
+
+@router.delete("/users/{user_id}", response_model=MessageResponse)
+async def delete_user(
+    user_id: int,
+    admin_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a user and all their orders. Admin access required.
+    """
+    if admin_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+
+    user_to_delete = db.query(User).filter(User.id == user_id).first()
+    if not user_to_delete:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    
+    # Prevent deleting yourself
+    if user_to_delete.id == admin_user.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete yourself.")
+    
+    # Prevent deleting other admins
+    if user_to_delete.role == "admin":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete another admin.")
+
+    # Delete user's orders first
+    db.query(Order).filter(Order.user_id == user_id).delete()
+    
+    # Delete the user
+    db.delete(user_to_delete)
+    db.commit()
+
+    return MessageResponse(message=f"User {user_to_delete.email} and all their orders have been deleted.")
+
+
+@router.delete("/orders/{order_id}", response_model=MessageResponse)
+async def delete_order(
+    order_id: int,
+    admin_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a specific order from user's history. Admin access required.
+    """
+    if admin_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+
+    order_to_delete = db.query(Order).filter(Order.id == order_id).first()
+    if not order_to_delete:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found.")
+
+    db.delete(order_to_delete)
+    db.commit()
+
+    return MessageResponse(message=f"Order #{order_id} has been deleted.")
 
 
 @router.post("/promo-codes", response_model=PromoCodeResponse)

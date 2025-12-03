@@ -44,27 +44,31 @@ async def admin_list_products(
 @router.get("/list")
 async def list_products(db: Session = Depends(get_db)):
     """Get list of all products (public endpoint)"""
-    # Purge any soft-deleted products past retention, and expired logic
-    purge_time = datetime.utcnow() - timedelta(minutes=10)
-    # Permanently delete products marked deleted longer than 10 minutes
-    old_deleted = db.query(Product).filter(Product.is_deleted == True, Product.deleted_at <= purge_time).all()
-    for pd in old_deleted:
-        db.delete(pd)
-    if old_deleted:
-        db.commit()
-
-    # Only return products that are in stock (quantity > 0) and not soft-deleted
-    products_from_db = db.query(Product).filter(Product.quantity > 0, Product.is_deleted == False).all()
+    from app.models import Order
+    
+    # Only return products that are not soft-deleted
+    products_from_db = db.query(Product).filter(Product.is_deleted == False).all()
 
     # Return raw dict response bypassing Pydantic validation
     response_list = []
     for p in products_from_db:
+        # Check if product is currently rented (has active non-expired orders)
+        now = datetime.utcnow()
+        active_rentals = db.query(Order).filter(
+            Order.product_id == p.id,
+            Order.expires_at > now
+        ).count()
+        
+        # Product is available if quantity > 0 OR no active rentals
+        is_rented = active_rentals > 0 and p.quantity <= 0
+        
         response_list.append({
             "id": p.id,
             "name": p.name or "N/A",
             "price": float(p.price) if p.price is not None else 0.0,
             "quantity": int(p.quantity) if p.quantity is not None else 0,
             "duration": p.duration or "N/A",
+            "is_rented": is_rented,
         })
     return response_list
 
@@ -189,9 +193,7 @@ async def delete_product(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Soft-delete a product (admin-only). This masks credentials and marks it deleted;
-    the product will be permanently removed after 10 minutes.
-    """
+    """Hard delete a product from database (admin-only)."""
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
 
@@ -199,13 +201,8 @@ async def delete_product(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    # Mask sensitive fields
-    product.account_info = ""
-    product.password_info = ""
-    product.otp_secret = None
-    product.is_deleted = True
-    product.deleted_at = datetime.utcnow()
-
+    # Hard delete - remove completely from database
+    db.delete(product)
     db.commit()
 
-    return MessageResponse(message="Product soft-deleted; it will be removed in 10 minutes")
+    return MessageResponse(message="Product deleted permanently")

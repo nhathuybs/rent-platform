@@ -231,15 +231,26 @@ const Dashboard: React.FC = () => {
                 {products.map(p => (
                     <div key={p.id} className="bg-white rounded-xl shadow border flex flex-col">
                         <div className="p-6 flex-grow">
-                            <h2 className="text-xl font-bold mb-2">{p.name}</h2>
-                            <p className="text-gray-600 text-sm mb-4">Stock: {p.quantity}</p>
+                            <div className="flex justify-between items-start mb-2">
+                                <h2 className="text-xl font-bold">{p.name}</h2>
+                                {p.is_rented ? (
+                                    <span className="text-xs px-2 py-1 bg-red-100 text-red-600 rounded-full">Đã thuê</span>
+                                ) : p.quantity > 0 ? (
+                                    <span className="text-xs px-2 py-1 bg-green-100 text-green-600 rounded-full">Còn hàng</span>
+                                ) : (
+                                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">Hết hàng</span>
+                                )}
+                            </div>
+                            <p className="text-gray-600 text-sm mb-4">Số lượng: {p.quantity}</p>
                         </div>
                         <div className="p-6 bg-gray-50 rounded-b-xl flex justify-between items-center">
                             <div>
                                 <p className="text-lg font-semibold text-brand-600">{formatVND(p.price)}</p>
                                 <p className="text-sm text-gray-500">/ {p.duration}</p>
                             </div>
-                            <Button onClick={() => handleBuy(p)} disabled={(user?.balance || 0) < p.price}>Mua</Button>
+                            <Button onClick={() => handleBuy(p)} disabled={(user?.balance || 0) < p.price || p.quantity <= 0 || p.is_rented}>
+                                {p.is_rented ? 'Đã thuê' : p.quantity <= 0 ? 'Hết hàng' : 'Mua'}
+                            </Button>
                         </div>
                     </div>
                 ))}
@@ -470,18 +481,27 @@ const AdminProductManagement: React.FC = () => {
                             <th className="px-4 py-3 text-left text-xs font-medium uppercase">Price</th>
                             <th className="px-4 py-3 text-left text-xs font-medium uppercase">Duration</th>
                             <th className="px-4 py-3 text-left text-xs font-medium uppercase">Stock</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase">Status</th>
                             <th className="px-4 py-3 text-right text-xs font-medium uppercase">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y">
                         {products.map(p => (
-                            <tr key={p.id}>
+                            <tr key={p.id} className={p.is_deleted ? 'bg-red-50' : ''}>
                                 <td className="px-4 py-4">{p.id}</td>
                                 <td className="px-4 py-4 font-medium">{p.name}</td>
                                 <td className="px-4 py-4">{formatVND(p.price)}</td>
                                 <td className="px-4 py-4">{p.duration}</td>
                                 <td className="px-4 py-4">{p.quantity}</td>
-                                <td className="px-4 py-4">{p.is_deleted ? 'Deleted' : 'Active'}</td>
+                                <td className="px-4 py-4">
+                                    {p.is_deleted ? (
+                                        <span className="text-xs px-2 py-1 bg-red-100 text-red-600 rounded">Đã xóa</span>
+                                    ) : p.quantity > 0 ? (
+                                        <span className="text-xs px-2 py-1 bg-green-100 text-green-600 rounded">Còn hàng</span>
+                                    ) : (
+                                        <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-600 rounded">Hết hàng</span>
+                                    )}
+                                </td>
                                 <td className="px-4 py-4 text-right">
                                     <div className="flex justify-end gap-2">
                                         <Button size="sm" onClick={() => navigate(`/admin/products/edit/${p.id}`)}>Edit</Button>
@@ -496,14 +516,14 @@ const AdminProductManagement: React.FC = () => {
                                                 alert('Gán sản phẩm thất bại');
                                             }
                                         }}>Assign</Button>
-                                        <Button size="sm" variant="danger" disabled={p.is_deleted} onClick={async () => {
-                                            if (!confirm(`Xóa sản phẩm #${p.id} - ${p.name}?`)) return;
+                                        <Button size="sm" variant="danger" onClick={async () => {
+                                            if (!confirm(`Xóa vĩnh viễn sản phẩm #${p.id} - ${p.name}? Hành động này không thể hoàn tác!`)) return;
                                             try {
                                                 await api.admin.deleteProduct(p.id);
                                                 // refresh products
                                                 const refreshed = await api.getAdminProducts();
                                                 setProducts(refreshed);
-                                                alert('Product soft-deleted');
+                                                alert('Sản phẩm đã được xóa vĩnh viễn!');
                                             } catch (err) {
                                                 console.error(err);
                                                 alert('Failed to delete product');
@@ -637,34 +657,63 @@ const AdminUserManagement: React.FC = () => {
         }
     };
 
+    const handleDeleteUser = async (user: User) => {
+        if (!window.confirm(`Xóa user ${user.email}? Tất cả lịch sử đơn hàng của user này cũng sẽ bị xóa!`)) return;
+        try {
+            await api.admin.deleteUser(user.id);
+            alert('User đã được xóa!');
+            fetchUsers();
+        } catch (e: any) { alert(e.message); }
+    };
+
+    const handleDeleteOrder = async (orderId: number) => {
+        if (!window.confirm(`Xóa đơn hàng #${orderId} khỏi lịch sử?`)) return;
+        try {
+            await api.admin.deleteOrder(orderId);
+            alert('Đơn hàng đã được xóa!');
+            fetchUsers();
+        } catch (e: any) { alert(e.message); }
+    };
+
     return (
         <div className="container mx-auto px-4 py-8">
             <h1 className="text-2xl font-bold mb-6">User Management</h1>
-            <div className="bg-white rounded-lg shadow overflow-x-auto border">
-                <table className="min-w-full divide-y">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-4 py-3 text-left">ID</th>
-                            <th className="px-4 py-3 text-left">Email</th>
-                            <th className="px-4 py-3 text-left">Balance</th>
-                            <th className="px-4 py-3 text-left">Role</th>
-                            <th className="px-4 py-3 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                        {users.map(u => (
-                            <tr key={u.id}>
-                                <td className="px-4 py-4">{u.id}</td>
-                                <td className="px-4 py-4">{u.email}</td>
-                                <td className="px-4 py-4">{formatVND(u.balance)}</td>
-                                <td className="px-4 py-4">{u.role}</td>
-                                <td className="px-4 py-4 text-right">
-                                    <Button size="sm" onClick={() => handleSetBalance(u)}>Set Balance</Button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            <div className="space-y-4">
+                {users.map(u => (
+                    <div key={u.id} className="bg-white rounded-lg shadow border p-4">
+                        <div className="flex justify-between items-center mb-4">
+                            <div>
+                                <span className="font-bold">{u.email}</span>
+                                <span className={`ml-2 text-xs px-2 py-1 rounded ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
+                                    {u.role}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-green-600 font-semibold">{formatVND(u.balance)}</span>
+                                <Button size="sm" onClick={() => handleSetBalance(u)}>Set Balance</Button>
+                                {u.role !== 'admin' && (
+                                    <Button size="sm" variant="danger" onClick={() => handleDeleteUser(u)}>Xóa User</Button>
+                                )}
+                            </div>
+                        </div>
+                        {u.orders && u.orders.length > 0 && (
+                            <div className="mt-3 border-t pt-3">
+                                <p className="text-sm font-semibold text-gray-600 mb-2">Lịch sử đơn hàng:</p>
+                                <div className="space-y-2 max-h-40 overflow-y-auto">
+                                    {u.orders.map((o: any) => (
+                                        <div key={o.id} className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded">
+                                            <div>
+                                                <span className="font-medium">{o.product_name}</span>
+                                                <span className="text-gray-500 ml-2">{formatVND(o.price)}</span>
+                                            </div>
+                                            <Button size="sm" variant="danger" onClick={() => handleDeleteOrder(o.id)}>Xóa</Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ))}
             </div>
         </div>
     );
