@@ -8,6 +8,22 @@ import { Navbar, Button, Input } from './components/Layout';
 const formatVND = (price: number) => price.toLocaleString('vi-VN') + ' VND';
 const formatDate = (dateString?: string) => dateString ? new Date(dateString).toLocaleString('vi-VN') : 'N/A';
 
+const formatRemaining = (expiresAt?: string) => {
+    if (!expiresAt) return 'N/A';
+    const now = new Date();
+    const exp = new Date(expiresAt);
+    const diffMs = exp.getTime() - now.getTime();
+    if (diffMs <= 0) return 'Đã hết hạn';
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    let parts: string[] = [];
+    if (diffDays > 0) parts.push(`${diffDays} ngày`);
+    if (diffHours > 0) parts.push(`${diffHours} giờ`);
+    if (diffDays === 0 && diffHours === 0) parts.push(`${diffMins} phút`);
+    return parts.join(' ');
+}
+
 // --- CONTEXT ---
 interface AuthContextType {
   user: User | null;
@@ -267,51 +283,42 @@ const History: React.FC = () => {
                     <thead className="bg-gray-50">
                         <tr>
                             <th className="px-4 py-3 text-left text-xs font-medium uppercase">Sản phẩm</th>
-                            {user?.role === 'admin' && <th className="px-4 py-3 text-left">Khách hàng</th>}
-                            <th className="px-4 py-3 text-left">Tài khoản</th>
-                            <th className="px-4 py-3 text-left">Hết hạn</th>
-                            <th className="px-4 py-3 text-left">Trạng thái</th>
-                            <th className="px-4 py-3 text-right">Hành động</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase">Tài khoản</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase">Mật khẩu</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase">Mã OTP</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase">Ngày mua</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase">Thời hạn còn lại</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium uppercase">Trạng thái</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium uppercase">Gia hạn</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y">
                         {orders.map(o => (
                             <tr key={o.id}>
                                 <td className="px-4 py-4 font-medium">{o.product_name}</td>
-                                {user?.role === 'admin' && <td className="px-4 py-4">{o.user_email}</td>}
                                 <td className="px-4 py-4 font-mono text-sm">{o.account_info}</td>
-                                <td className="px-4 py-4 text-sm">{formatDate(o.expires_at)}</td>
+                                <td className="px-4 py-4 font-mono text-sm">{o.password_info}</td>
+                                <td className="px-4 py-4 text-sm">
+                                    {o.otp_info ? (
+                                        <Button size="sm" variant="secondary" onClick={async () => {
+                                            try {
+                                                const res = await api.calcOtp(o.otp_info || '');
+                                                alert(`Mã OTP: ${res?.otp ?? 'N/A'}`);
+                                            } catch (e: any) {
+                                                alert(`Không thể lấy OTP: ${e.message}`);
+                                            }
+                                        }}>Hiện</Button>
+                                    ) : 'N/A'}
+                                </td>
+                                <td className="px-4 py-4 text-sm">{formatDate(o.purchase_time)}</td>
+                                <td className="px-4 py-4 text-sm">{formatRemaining(o.expires_at)}</td>
                                 <td className="px-4 py-4">
                                     <span className={`px-2 py-1 text-xs rounded-full ${o.is_expired ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                                         {o.is_expired ? 'Hết hạn' : 'Hoạt động'}
                                     </span>
                                 </td>
-                                                                <td className="px-4 py-4 text-right space-x-2">
-                                                                        <Button
-                                                                            variant="secondary"
-                                                                            size="sm"
-                                                                            disabled={o.is_expired}
-                                                                            onClick={async () => {
-                                                                                try {
-                                                                                    // If there's an OTP secret, ask server to calculate the current 6-digit OTP
-                                                                                    let otpDisplay = 'N/A';
-                                                                                    if (o.otp_info) {
-                                                                                        const res = await api.calcOtp(o.otp_info);
-                                                                                        otpDisplay = res?.otp ?? 'N/A';
-                                                                                    }
-                                                                                    alert(`Password: ${o.password_info}\nOTP: ${otpDisplay}`);
-                                                                                } catch (e: any) {
-                                                                                    // Fallback: show secret if calc fails
-                                                                                    alert(`Password: ${o.password_info}\nOTP Secret: ${o.otp_info || 'N/A'}\n\n(Could not compute OTP: ${e.message})`);
-                                                                                }
-                                                                            }}
-                                                                        >
-                                                                            Xem Pass/OTP
-                                                                        </Button>
-                                    {user?.role === 'admin' ? 
-                                     <Button size="sm" onClick={() => handleAdminEdit(o)}>Sửa</Button> :
-                                     <Button size="sm" onClick={() => handleRenew(o)}>Gia hạn</Button>
-                                    }
+                                <td className="px-4 py-4 text-right">
+                                    <Button size="sm" onClick={() => handleRenew(o)} disabled={o.is_expired}>Gia hạn</Button>
                                 </td>
                             </tr>
                         ))}
