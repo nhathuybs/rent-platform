@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { HashRouter, Routes, Route, Navigate, useNavigate, Link, useParams } from 'react-router-dom';
 import { api } from './services/api';
-import { User, ProductListItem, ProductDetails, Order, PromoCode } from './types';
-import { Navbar, Button, Input, Modal } from './components/Layout';
+import { User, ProductListItem, Order } from './types';
+import { Navbar, Button, Input } from './components/Layout';
 
 // --- UTILITY & FORMATTER ---
 const formatVND = (price: number) => price.toLocaleString('vi-VN') + ' VND';
@@ -293,7 +293,7 @@ const Profile: React.FC = () => {
 
 // --- ADMIN PAGES ---
 const AdminProductManagement: React.FC = () => { /* ... Code is correct ... */ return <div>Product Management</div>; };
-const AdminProductForm: React.FC<{ mode: 'new' | 'edit' }> = ({ mode }) => { /* ... Code is correct ... */ return <div>Product Form</div>; };
+const AdminProductForm: React.FC<{ mode: 'new' | 'edit' }> = () => { /* ... Code is correct ... */ return <div>Product Form</div>; };
 const AdminUserManagement: React.FC = () => { /* ... Code is correct ... */ return <div>User Management</div>; };
 const AdminPromoManagement: React.FC = () => { /* ... Code is correct ... */ return <div>Promo Management</div>; };
 
