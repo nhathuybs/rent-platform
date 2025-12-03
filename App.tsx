@@ -243,6 +243,8 @@ const History: React.FC = () => {
     const [modalOtp, setModalOtp] = useState<string | null>(null);
     const [modalLoading, setModalLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [otpCache, setOtpCache] = useState<Record<number, string>>({});
+    const [otpLoading, setOtpLoading] = useState<Record<number, boolean>>({});
 
     const fetchHistory = useCallback(async () => {
         if (!user) return;
@@ -320,16 +322,34 @@ const History: React.FC = () => {
                                 <td className="px-4 py-4 font-mono text-sm">{o.account_info}</td>
                                 <td className="px-4 py-4 font-mono text-sm">{'••••••'}</td>
                                 <td className="px-4 py-4 text-sm">
-                                    {o.otp_info ? (
-                                        <Button size="sm" variant="secondary" onClick={async () => {
-                                                try {
-                                                    const res = await api.calcOtp(o.otp_info || '');
-                                                    alert(`Tài khoản: ${o.account_info}\nMật khẩu: ${o.password_info}\nMã OTP: ${res?.otp ?? 'N/A'}`);
-                                                } catch (e: any) {
-                                                    alert(`Không thể lấy OTP: ${e.message}`);
-                                                }
-                                            }}>Hiện</Button>
-                                    ) : 'N/A'}
+                                        {o.otp_info ? (
+                                            otpCache[o.id] ? (
+                                                <span className="font-mono">{otpCache[o.id]}</span>
+                                            ) : (
+                                                <Button size="sm" variant="secondary" onClick={async () => {
+                                                    // Fetch OTP, copy to clipboard, and show in-cell
+                                                    try {
+                                                        setOtpLoading(prev => ({ ...prev, [o.id]: true }));
+                                                        const res = await api.calcOtp(o.otp_info || '');
+                                                        const otp = res?.otp ?? '';
+                                                        if (otp) {
+                                                            setOtpCache(prev => ({ ...prev, [o.id]: otp }));
+                                                            try {
+                                                                await navigator.clipboard.writeText(otp);
+                                                            } catch (_) {
+                                                                // ignore clipboard failures
+                                                            }
+                                                        }
+                                                    } catch (e: any) {
+                                                        console.error('Failed to fetch OTP', e);
+                                                    } finally {
+                                                        setOtpLoading(prev => ({ ...prev, [o.id]: false }));
+                                                    }
+                                                }}>
+                                                    {otpLoading[o.id] ? 'Đang...' : 'Lấy mã'}
+                                                </Button>
+                                            )
+                                        ) : 'N/A'}
                                 </td>
                                 <td className="px-4 py-4 text-sm">{formatDate(o.purchase_time)}</td>
                                 <td className="px-4 py-4 text-sm">{formatRemaining(o.expires_at)}</td>
