@@ -24,6 +24,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [apiReady, setApiReady] = useState(false);
+
+  const checkApiStatus = useCallback(async () => {
+    try {
+      await api.healthCheck();
+      setApiReady(true);
+      return true;
+    } catch (e) {
+      setApiReady(false);
+      return false;
+    }
+  }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem("token");
@@ -43,6 +55,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const fetchUserOnMount = async () => {
+      if (!await checkApiStatus()) {
+        setLoading(false);
+        return;
+      }
       const existingToken = localStorage.getItem("token");
       if (existingToken) {
         try {
@@ -56,9 +72,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     };
     fetchUserOnMount();
-  }, [logout]);
+  }, [logout, checkApiStatus]);
 
   if (loading) return <div className="flex h-screen items-center justify-center text-2xl font-semibold">Đang tải...</div>;
+
+  if (!apiReady) {
+    return (
+        <div className="flex flex-col h-screen items-center justify-center text-center">
+            <h2 className="text-2xl font-semibold mb-4">Lỗi kết nối Server</h2>
+            <p className="mb-6 text-gray-600">Không thể kết nối tới máy chủ. Vui lòng thử lại sau.</p>
+            <Button onClick={() => window.location.reload()}>Tải lại trang</Button>
+        </div>
+    );
+  }
   
   return (
     <AuthContext.Provider value={{ user, token, login, logout, updateUser, loading }}>

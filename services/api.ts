@@ -24,6 +24,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
 // --- API DEFINITION ---
 export const api = {
+  // Health Check
+  healthCheck: () => request("/health"),
+
   // Auth & User
   register: (data: any) => request("/users/register", { method: "POST", body: JSON.stringify(data) }),
   verify: (data: any) => request("/users/verify", { method: "POST", body: JSON.stringify(data) }),
