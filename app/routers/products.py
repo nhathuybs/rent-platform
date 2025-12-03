@@ -195,6 +195,8 @@ async def delete_product(
     db: Session = Depends(get_db)
 ):
     """Hard delete a product from database (admin-only)."""
+    from app.models import Order
+    
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
 
@@ -202,6 +204,9 @@ async def delete_product(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
+    # Delete all orders related to this product first (to avoid foreign key constraint)
+    db.query(Order).filter(Order.product_id == product_id).delete()
+    
     # Hard delete - remove completely from database
     db.delete(product)
     db.commit()
