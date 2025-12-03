@@ -456,6 +456,17 @@ const AdminProductManagement: React.FC = () => {
                                 <td className="px-4 py-4 text-right">
                                     <div className="flex justify-end gap-2">
                                         <Button size="sm" onClick={() => navigate(`/admin/products/edit/${p.id}`)}>Edit</Button>
+                                        <Button size="sm" variant="secondary" onClick={async () => {
+                                            const email = prompt(`Nhập email user để gán sản phẩm #${p.id} - ${p.name}:`);
+                                            if (!email) return;
+                                            try {
+                                                await api.admin.assignProduct(email.trim(), p.id);
+                                                alert(`Đã gán sản phẩm cho ${email}`);
+                                            } catch (err) {
+                                                console.error(err);
+                                                alert('Gán sản phẩm thất bại');
+                                            }
+                                        }}>Assign</Button>
                                         <Button size="sm" variant="danger" onClick={async () => {
                                             if (!confirm(`Xóa sản phẩm #${p.id} - ${p.name}?`)) return;
                                             try {
