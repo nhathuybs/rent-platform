@@ -142,3 +142,7 @@ class RedeemCodeRequest(BaseModel):
 class AdminUserDetailResponse(UserResponse):
     orders: list[OrderResponse] = []
 
+
+class OrderUpdate(BaseModel):
+    expires_at: datetime
+

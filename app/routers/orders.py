@@ -216,3 +216,28 @@ async def admin_revoke_order(
 
     return MessageResponse(message=f"Order ID {order_id} has been successfully revoked.")
 
+
+@router.put("/admin/{order_id}", response_model=OrderResponse, tags=["admin_actions"])
+async def admin_update_order(
+    order_id: int,
+    order_data: OrderUpdate,
+    admin_user: User = Depends(get_current_user_dep),
+    db: Session = Depends(get_db)
+):
+    """Admin updates an order's details (e.g., expiration date)."""
+    if admin_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+    
+    order_to_update = db.query(Order).filter(Order.id == order_id).first()
+    if not order_to_update:
+        raise HTTPException(status_code=404, detail="Order not found.")
+
+    order_to_update.expires_at = order_data.expires_at
+    db.commit()
+    db.refresh(order_to_update)
+
+    # Need user email for the response
+    user = db.query(User).filter(User.id == order_to_update.user_id).first()
+    
+    return create_order_response(order_to_update, user_email=user.email if user else None)
+
