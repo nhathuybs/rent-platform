@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, createContext, useContext } fr
 import { HashRouter, Routes, Route, Navigate, useNavigate, Link, useParams } from 'react-router-dom';
 import { api } from './services/api';
 import { User, ProductListItem, Order, PromoCode } from './types';
-import { Navbar, Button, Input } from './components/Layout';
+import { Navbar, Button, Input, Modal } from './components/Layout';
 
 // --- UTILITY & FORMATTER ---
 const formatVND = (price: number) => price.toLocaleString('vi-VN') + ' VND';
@@ -238,6 +238,11 @@ const History: React.FC = () => {
     const { user, updateUser } = useAuth();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalOrder, setModalOrder] = useState<Order | null>(null);
+    const [modalOtp, setModalOtp] = useState<string | null>(null);
+    const [modalLoading, setModalLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const fetchHistory = useCallback(async () => {
         if (!user) return;
@@ -262,6 +267,22 @@ const History: React.FC = () => {
         } catch (e: any) { alert(e.message); }
     };
     
+    const openRevealModal = async (order: Order) => {
+        setModalOrder(order);
+        setModalOpen(true);
+        setShowPassword(false);
+        setModalOtp(null);
+        if (order.otp_info) {
+            setModalLoading(true);
+            try {
+                const res = await api.calcOtp(order.otp_info);
+                setModalOtp(res?.otp ?? null);
+            } catch (e: any) {
+                setModalOtp(null);
+            } finally { setModalLoading(false); }
+        }
+    };
+
     const handleAdminEdit = async (order: Order) => {
         const newDateStr = prompt("Nhập ngày hết hạn mới (YYYY-MM-DD HH:MM:SS):", new Date(order.expires_at || Date.now()).toISOString().slice(0, 19).replace('T', ' '));
         if (newDateStr) {
@@ -297,17 +318,17 @@ const History: React.FC = () => {
                             <tr key={o.id}>
                                 <td className="px-4 py-4 font-medium">{o.product_name}</td>
                                 <td className="px-4 py-4 font-mono text-sm">{o.account_info}</td>
-                                <td className="px-4 py-4 font-mono text-sm">{o.password_info}</td>
+                                <td className="px-4 py-4 font-mono text-sm">{'••••••'}</td>
                                 <td className="px-4 py-4 text-sm">
                                     {o.otp_info ? (
                                         <Button size="sm" variant="secondary" onClick={async () => {
-                                            try {
-                                                const res = await api.calcOtp(o.otp_info || '');
-                                                alert(`Mã OTP: ${res?.otp ?? 'N/A'}`);
-                                            } catch (e: any) {
-                                                alert(`Không thể lấy OTP: ${e.message}`);
-                                            }
-                                        }}>Hiện</Button>
+                                                try {
+                                                    const res = await api.calcOtp(o.otp_info || '');
+                                                    alert(`Tài khoản: ${o.account_info}\nMật khẩu: ${o.password_info}\nMã OTP: ${res?.otp ?? 'N/A'}`);
+                                                } catch (e: any) {
+                                                    alert(`Không thể lấy OTP: ${e.message}`);
+                                                }
+                                            }}>Hiện</Button>
                                     ) : 'N/A'}
                                 </td>
                                 <td className="px-4 py-4 text-sm">{formatDate(o.purchase_time)}</td>
