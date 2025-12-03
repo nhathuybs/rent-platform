@@ -502,14 +502,26 @@ const AdminProductForm: React.FC<{ mode: 'new' | 'edit' }> = () => {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setProduct(prev => ({ ...prev, [name]: name === 'price' || name === 'quantity' ? parseInt(value) : value }));
+        const isNumber = name === 'price' || name === 'quantity';
+        const parsed = isNumber ? (value === '' ? 0 : Number(value)) : value;
+        setProduct(prev => ({ ...prev, [name]: parsed }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             if (mode === 'new') {
-                await api.admin.addProduct(product);
+                // Map frontend field names to backend expected names for create
+                const payload = {
+                    name: product.name,
+                    price: Number(product.price || 0),
+                    duration: product.duration,
+                    quantity: Number(product.quantity || 0),
+                    account: product.account_info,
+                    password: product.password_info,
+                    otp_secret: product.otp_secret || null,
+                };
+                await api.admin.addProduct(payload);
                 alert('Product created successfully');
             } else if (id) {
                 await api.admin.updateProduct(parseInt(id), product);
