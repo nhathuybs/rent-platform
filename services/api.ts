@@ -8,8 +8,15 @@ const getToken = () => localStorage.getItem("token");
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
-  const headers = new Headers({ "Content-Type": "application/json", ...options.headers });
+  const headers = new Headers(options.headers || {});
   if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  // Only set JSON content type when there is a JSON body to send.
+  // Sending `Content-Type: application/json` on GET requests triggers a CORS preflight (OPTIONS)
+  // which can lead to 405 responses if the server or proxy doesn't handle OPTIONS for that route.
+  if (options.body !== undefined && !(options.body instanceof FormData)) {
+    if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  }
 
   const response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
 
