@@ -228,33 +228,28 @@ const Dashboard: React.FC = () => {
             
             <h1 className="text-2xl font-bold mb-6">Sản phẩm có sẵn</h1>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {products.map(p => (
+                {products.filter(p => !p.is_rented && p.quantity > 0).map(p => (
                     <div key={p.id} className="bg-white rounded-xl shadow border flex flex-col">
                         <div className="p-6 flex-grow">
-                            <div className="flex justify-between items-start mb-2">
-                                <h2 className="text-xl font-bold">{p.name}</h2>
-                                {p.is_rented ? (
-                                    <span className="text-xs px-2 py-1 bg-red-100 text-red-600 rounded-full">Đã thuê</span>
-                                ) : p.quantity > 0 ? (
-                                    <span className="text-xs px-2 py-1 bg-green-100 text-green-600 rounded-full">Còn hàng</span>
-                                ) : (
-                                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">Hết hàng</span>
-                                )}
-                            </div>
-                            <p className="text-gray-600 text-sm mb-4">Số lượng: {p.quantity}</p>
+                            <h2 className="text-xl font-bold mb-2">{p.name}</h2>
+                            <p className="text-gray-600 text-sm mb-4">Hiệu lực: {p.duration}</p>
                         </div>
                         <div className="p-6 bg-gray-50 rounded-b-xl flex justify-between items-center">
                             <div>
                                 <p className="text-lg font-semibold text-brand-600">{formatVND(p.price)}</p>
-                                <p className="text-sm text-gray-500">/ {p.duration}</p>
                             </div>
-                            <Button onClick={() => handleBuy(p)} disabled={(user?.balance || 0) < p.price || p.quantity <= 0 || p.is_rented}>
-                                {p.is_rented ? 'Đã thuê' : p.quantity <= 0 ? 'Hết hàng' : 'Mua'}
+                            <Button onClick={() => handleBuy(p)} disabled={(user?.balance || 0) < p.price}>
+                                Mua
                             </Button>
                         </div>
                     </div>
                 ))}
             </div>
+            {products.filter(p => !p.is_rented && p.quantity > 0).length === 0 && (
+                <div className="text-center text-gray-500 py-12">
+                    <p>Hiện tại không có sản phẩm nào có sẵn.</p>
+                </div>
+            )}
         </div>
     );
 };
