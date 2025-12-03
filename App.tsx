@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
-import { HashRouter, Routes, Route, Navigate, useNavigate, Link, useParams } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
 import { api } from './services/api';
-import { User, ProductListItem, Order } from './types';
+import { User, Order } from './types';
 import { Navbar, Button, Input } from './components/Layout';
 
 // --- UTILITY & FORMATTER ---
@@ -148,7 +148,7 @@ const AuthPage: React.FC<{ mode: 'login' | 'register' | 'verify' | 'forgot' | 'r
     );
 };
 
-const Dashboard: React.FC = () => { /* ... Unchanged ... */ return <div>Dashboard Page</div>; };
+const Dashboard: React.FC = () => { return <div>Dashboard Page</div>; };
 
 const History: React.FC = () => {
     const { user, updateUser } = useAuth();
@@ -292,11 +292,10 @@ const Profile: React.FC = () => {
 };
 
 // --- ADMIN PAGES ---
-const AdminProductManagement: React.FC = () => { /* ... Code is correct ... */ return <div>Product Management</div>; };
-const AdminProductForm: React.FC<{ mode: 'new' | 'edit' }> = () => { /* ... Code is correct ... */ return <div>Product Form</div>; };
-const AdminUserManagement: React.FC = () => { /* ... Code is correct ... */ return <div>User Management</div>; };
-const AdminPromoManagement: React.FC = () => { /* ... Code is correct ... */ return <div>Promo Management</div>; };
-
+const AdminProductManagement: React.FC = () => { return <div>Product Management</div>; };
+const AdminProductForm: React.FC<{ mode: 'new' | 'edit' }> = () => { return <div>Product Form</div>; };
+const AdminUserManagement: React.FC = () => { return <div>User Management</div>; };
+const AdminPromoManagement: React.FC = () => { return <div>Promo Management</div>; };
 
 // --- LAYOUT & ROUTING ---
 const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
