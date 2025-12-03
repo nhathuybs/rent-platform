@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import init_db
-from app.routers import users, products, orders
+from app.database import init_db, SessionLocal
+from app.routers import users, products, orders, admin
+from create_admin import create_default_admin
 
 # Initialize database
 init_db()
@@ -37,6 +38,20 @@ app.add_middleware(
 app.include_router(users.router)
 app.include_router(products.router)
 app.include_router(orders.router)
+app.include_router(admin.router)
+
+
+@app.on_event("startup")
+def on_startup():
+    """
+    Event handler that runs when the application starts up.
+    It creates a database session and calls the function to create a default admin.
+    """
+    db = SessionLocal()
+    try:
+        create_default_admin(db)
+    finally:
+        db.close()
 
 
 @app.get("/")

@@ -3,11 +3,11 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from app.database import get_db
-from app.models import User
+from app.models import User, PromotionCode
 from app.schemas import (
     UserRegister, UserVerify, UserLogin, UserResponse, AuthResponse,
     ResendVerification, ForgotPassword, ResetPassword, ChangePassword, MessageResponse,
-    UserAddBalance
+    UserAddBalance, RedeemCodeRequest
 )
 from app.auth import (
     get_password_hash, verify_password, create_access_token,
@@ -248,6 +248,36 @@ async def make_admin(email: str, db: Session = Depends(get_db)):
     db.commit()
     
     return MessageResponse(message=f"User {email} has been promoted to admin.")
+
+
+
+@router.post("/redeem-code", response_model=MessageResponse, tags=["user_actions"])
+async def redeem_promo_code(
+    data: RedeemCodeRequest,
+    current_user: User = Depends(get_current_user_dep),
+    db: Session = Depends(get_db)
+):
+    """Redeem a promotion code to add balance to the user's account."""
+    # Find the promotion code
+    promo_code = db.query(PromotionCode).filter(PromotionCode.code == data.code, PromotionCode.is_active == True).first()
+    if not promo_code:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Promotion code not found or is inactive.")
+
+    # Check if user has already used this code
+    if promo_code in current_user.used_promotion_codes:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You have already used this promotion code.")
+
+    # Add balance and mark code as used by this user
+    current_user.balance += promo_code.amount
+    current_user.used_promotion_codes.append(promo_code)
+    
+    # Deactivate the code after one use (optional, depends on business logic)
+    # If you want codes to be reusable by different users, comment out the next line
+    promo_code.is_active = False
+
+    db.commit()
+
+    return MessageResponse(message=f"Successfully redeemed code {data.code}. {promo_code.amount} has been added to your balance.")
 
 
 # --- ADMIN-ONLY ENDPOINT TO ADD BALANCE ---

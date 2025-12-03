@@ -1,78 +1,47 @@
-"""
-Script to create the first admin user.
-Run this script after setting up the database.
-
-Usage:
-    python create_admin.py
-
-You will be prompted for email and password.
-"""
-from app.database import SessionLocal, init_db
+import os
+from sqlalchemy.orm import Session
 from app.models import User
 from app.auth import get_password_hash
-import getpass
 
-def create_admin():
-    """Create an admin user"""
-    # Initialize database
-    init_db()
+# --- CONFIGURATION FOR THE DEFAULT ADMIN USER ---
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "ledoannhathuy22072006@gmail.com")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "aappqq123")
+
+def create_default_admin(db: Session):
+    """
+    Checks if an admin user exists, and if not, creates a default one.
+    This is safe to run on every application startup.
+    """
+    # Check if any admin user already exists
+    admin_user = db.query(User).filter(User.role == "admin").first()
     
-    db = SessionLocal()
-    try:
-        print("=" * 60)
-        print("Create Admin User")
-        print("=" * 60)
+    if not admin_user:
+        print("No admin account found. Creating default admin...")
         
-        email = input("Enter admin email: ").strip()
-        if not email:
-            print("Error: Email is required")
-            return
-        
-        # Check if user already exists
-        existing_user = db.query(User).filter(User.email == email).first()
+        # Check if the default admin email is already taken by a regular user
+        existing_user = db.query(User).filter(User.email == ADMIN_EMAIL).first()
         if existing_user:
-            print(f"User with email {email} already exists.")
-            response = input("Do you want to make this user an admin? (y/n): ").strip().lower()
-            if response == 'y':
-                existing_user.role = "admin"
-                existing_user.is_verified = True
-                db.commit()
-                print(f"User {email} is now an admin!")
-            return
+            print(f"User with email {ADMIN_EMAIL} already exists. Promoting to admin.")
+            existing_user.role = "admin"
+            existing_user.is_verified = True # Also verify them
+        else:
+            print(f"Creating new admin user with email {ADMIN_EMAIL}.")
+            new_admin = User(
+                email=ADMIN_EMAIL,
+                hashed_password=get_password_hash(ADMIN_PASSWORD),
+                role="admin",
+                is_verified=True  # Default admin is pre-verified
+            )
+            db.add(new_admin)
         
-        password = getpass.getpass("Enter admin password: ")
-        if not password:
-            print("Error: Password is required")
-            return
-        
-        confirm_password = getpass.getpass("Confirm admin password: ")
-        if password != confirm_password:
-            print("Error: Passwords do not match")
-            return
-        
-        # Create admin user
-        admin_user = User(
-            email=email,
-            hashed_password=get_password_hash(password),
-            role="admin",
-            is_verified=True  # Admin doesn't need email verification
-        )
-        
-        db.add(admin_user)
         db.commit()
-        db.refresh(admin_user)
-        
-        print("=" * 60)
-        print(f"Admin user created successfully!")
-        print(f"Email: {email}")
-        print("=" * 60)
-        
-    except Exception as e:
-        print(f"Error creating admin user: {e}")
-        db.rollback()
-    finally:
-        db.close()
+        print("Default admin user created or promoted successfully.")
+    else:
+        print("Admin user already exists. Skipping default admin creation.")
 
 if __name__ == "__main__":
-    create_admin()
-
+    # This part allows you to still run `python create_admin.py` manually if needed,
+    # but it will require database session setup.
+    # For automatic seeding, the function is called from main.py.
+    print("This script is now designed to be called as a function from the main application.")
+    print("To manually create an admin, you would need to set up a database session here.")

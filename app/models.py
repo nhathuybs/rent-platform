@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, Table
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -22,6 +22,12 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     orders = relationship("Order", back_populates="user")
+    # Add relationship to promotion codes
+    used_promotion_codes = relationship(
+        "PromotionCode",
+        secondary="user_promotion_codes",
+        back_populates="used_by_users"
+    )
 
 
 class Product(Base):
@@ -38,6 +44,31 @@ class Product(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     orders = relationship("Order", back_populates="product")
+
+
+class PromotionCode(Base):
+    __tablename__ = "promotion_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, index=True, nullable=False)
+    amount = Column(Float, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    used_by_users = relationship(
+        "User",
+        secondary="user_promotion_codes",
+        back_populates="used_promotion_codes"
+    )
+
+
+# Association table for User and PromotionCode many-to-many relationship
+user_promotion_codes = Table(
+    "user_promotion_codes",
+    Base.metadata,
+    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
+    Column("promotion_code_id", Integer, ForeignKey("promotion_codes.id"), primary_key=True),
+)
 
 
 class Order(Base):

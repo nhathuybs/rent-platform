@@ -106,3 +106,29 @@ class OrderResponse(BaseModel):
 class MessageResponse(BaseModel):
     message: str
 
+
+# --- Promotion Code Schemas ---
+
+class PromoCodeCreate(BaseModel):
+    code: str
+    amount: float
+
+class PromoCodeResponse(BaseModel):
+    id: int
+    code: str
+    amount: float
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class RedeemCodeRequest(BaseModel):
+    code: str
+
+
+# --- Admin Schemas ---
+
+class AdminUserDetailResponse(UserResponse):
+    orders: list[OrderResponse] = []
+
