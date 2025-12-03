@@ -1,12 +1,7 @@
-import { AuthResponse, User, Product, Order } from '../types';
+import { AuthResponse, User, Product, Order, PromoCode } from '../types';
 
 // --- CẤU HÌNH ĐỊA CHỈ SERVER ---
-// URL của backend sẽ được lấy từ biến môi trường VITE_API_BASE.
-// Khi deploy, bạn sẽ đặt biến này trong cài đặt của Cloudflare Pages.
-// Khi chạy local, bạn có thể tạo file .env và đặt VITE_API_BASE=http://localhost:8000
 export const API_BASE = import.meta.env.VITE_API_BASE || "https://rent-platform-1.onrender.com"; 
-// Ví dụ sau khi deploy backend xong: 
-// export const API_BASE = "https://rent-app-backend.onrender.com";
 
 // -------------------------------------------
 
@@ -31,13 +26,11 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   });
 
   if (!response.ok) {
-    // If the response is not successful, try to parse the error body
     const errorBody = await response.json().catch(() => ({ detail: response.statusText }));
     throw new Error(errorBody.detail || 'An unknown error occurred');
   }
 
-  // If the response has no content, return a default value or handle as needed
-  if (response.status === 204) {
+  if (response.status === 204 || response.headers.get("content-length") === "0") {
     return {} as T;
   }
 
@@ -54,15 +47,31 @@ export const api = {
   resetPassword: (data: any) => request("/users/reset-password", { method: "POST", body: JSON.stringify(data) }),
   changePassword: (data: any) => request("/users/change-password", { method: "POST", body: JSON.stringify(data) }),
   getMe: () => request<User>("/users/me"),
+  redeemCode: (code: string) => request("/users/redeem-code", { method: "POST", body: JSON.stringify({ code }) }),
 
   // Products
   getProducts: () => request<Product[]>("/products/list"),
-  addProduct: (data: any) => request("/products/add", { method: "POST", body: JSON.stringify(data) }),
   
   // Orders
   buyProduct: (id: number) => request(`/orders/buy/${id}`, { method: "POST" }),
   getHistory: (role: string) => request<Order[]>(role === 'admin' ? "/orders/all" : "/orders/history"),
+  renewOrder: (orderId: number) => request(`/orders/renew/${orderId}`, { method: "POST" }),
   
   // OTP
   calcOtp: (secret: string) => request<{ otp: string }>(`/products/calc-otp?secret=${encodeURIComponent(secret)}`),
+
+  // --- Admin Specific ---
+  admin: {
+    getUsers: () => request<User[]>("/admin/users"),
+    setBalance: (email: string, amount: number) => request("/admin/users/balance", { method: "PUT", body: JSON.stringify({ email, amount }) }),
+    addBalance: (email: string, amount: number) => request("/users/add-balance", { method: "POST", body: JSON.stringify({ email, amount }) }),
+    
+    getPromos: () => request<PromoCode[]>("/admin/promo-codes"),
+    createPromo: (data: { code: string, amount: number }) => request("/admin/promo-codes", { method: "POST", body: JSON.stringify(data) }),
+    deletePromo: (id: number) => request(`/admin/promo-codes/${id}`, { method: "DELETE" }),
+
+    addProduct: (data: any) => request("/products/add", { method: "POST", body: JSON.stringify(data) }),
+    assignProduct: (user_email: string, product_id: number) => request(`/orders/admin/assign?user_email=${user_email}&product_id=${product_id}`, { method: "POST" }),
+    revokeOrder: (order_id: number) => request(`/orders/admin/revoke/${order_id}`, { method: "DELETE" }),
+  }
 };
