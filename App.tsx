@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { HashRouter, Routes, Route, Navigate, useNavigate, Link, useParams } from 'react-router-dom';
 import { api } from './services/api';
-import { User, ProductListItem, ProductDetails, Order, PromoCode } from './types';
+import { User, ProductListItem, ProductDetails } from './types';
 import { Navbar, Button, Input } from './components/Layout';
 
 // --- UTILITY & FORMATTER ---
 const formatVND = (price: number) => price.toLocaleString('vi-VN') + ' VND';
-const formatDate = (dateString?: string) => dateString ? new Date(dateString).toLocaleString('vi-VN') : 'N/A';
 
 // --- CONTEXT ---
 interface AuthContextType {
@@ -78,7 +77,6 @@ const AuthPage: React.FC<{ mode: 'login' | 'register' | 'verify' | 'forgot' | 'r
   const { login } = useAuth();
   const [formData, setFormData] = useState({ email: '', password: '', confirm: '', code: '' });
   const [error, setError] = useState('');
-  const [msg, setMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -92,7 +90,7 @@ const AuthPage: React.FC<{ mode: 'login' | 'register' | 'verify' | 'forgot' | 'r
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(''); setMsg(''); setIsLoading(true);
+    setError(''); setIsLoading(true);
     try {
       if (mode === 'login') {
         const res = await api.login({ email: formData.email, password: formData.password });
