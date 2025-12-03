@@ -241,6 +241,7 @@ const History: React.FC = () => {
     // Removed modal UI state — using in-cell OTP display instead
     const [otpCache, setOtpCache] = useState<Record<number, string>>({});
     const [otpLoading, setOtpLoading] = useState<Record<number, boolean>>({});
+    const [showPassword, setShowPassword] = useState<Record<number, boolean>>({});
 
     const fetchHistory = useCallback(async () => {
         if (!user) return;
@@ -302,7 +303,13 @@ const History: React.FC = () => {
                             <tr key={o.id}>
                                 <td className="px-4 py-4 font-medium">{o.product_name}</td>
                                 <td className="px-4 py-4 font-mono text-sm">{o.account_info}</td>
-                                <td className="px-4 py-4 font-mono text-sm">{'••••••'}</td>
+                                <td className="px-4 py-4 font-mono text-sm">
+                                    {showPassword[o.id] ? (
+                                        <span className="cursor-pointer" onClick={() => setShowPassword(p => ({...p, [o.id]: false}))} title="Click để ẩn">{o.password_info}</span>
+                                    ) : (
+                                        <span className="cursor-pointer text-gray-400" onClick={() => setShowPassword(p => ({...p, [o.id]: true}))} title="Click để xem">••••••</span>
+                                    )}
+                                </td>
                                 <td className="px-4 py-4 text-sm">
                                         {o.otp_info ? (
                                             otpCache[o.id] ? (
