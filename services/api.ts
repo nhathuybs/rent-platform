@@ -66,6 +66,7 @@ export const api = {
     addProduct: (data: any) => request("/products/add", { method: "POST", body: JSON.stringify(data) }),
     getProductDetails: (id: number) => request<ProductDetails>(`/products/${id}`),
     updateProduct: (id: number, data: Partial<ProductDetails>) => request(`/products/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    deleteProduct: (id: number) => request(`/products/${id}`, { method: "DELETE" }),
     
     getAllOrders: () => request<Order[]>("/orders/all"),
     assignProduct: (user_email: string, product_id: number) => request(`/orders/admin/assign?user_email=${user_email}&product_id=${product_id}`, { method: "POST" }),

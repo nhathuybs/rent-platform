@@ -122,6 +122,26 @@ async def update_product(
     return product
 
 
+@router.delete("/{product_id}", response_model=MessageResponse, tags=["admin_actions"])
+async def delete_product(
+    product_id: int,
+    current_user: User = Depends(get_current_user_dep),
+    db: Session = Depends(get_db)
+):
+    """Delete a product (admin only)."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    db.delete(product)
+    db.commit()
+
+    return MessageResponse(message="Product deleted successfully")
+
+
 @router.get("/calc-otp", response_model=CalcOtpResponse)
 async def calc_otp(secret: str = Query(...)):
     """Calculate OTP from secret key"""

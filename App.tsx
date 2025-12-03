@@ -454,7 +454,21 @@ const AdminProductManagement: React.FC = () => {
                                 <td className="px-4 py-4">{p.duration}</td>
                                 <td className="px-4 py-4">{p.quantity}</td>
                                 <td className="px-4 py-4 text-right">
-                                    <Button size="sm" onClick={() => navigate(`/admin/products/edit/${p.id}`)}>Edit</Button>
+                                    <div className="flex justify-end gap-2">
+                                        <Button size="sm" onClick={() => navigate(`/admin/products/edit/${p.id}`)}>Edit</Button>
+                                        <Button size="sm" variant="danger" onClick={async () => {
+                                            if (!confirm(`Xóa sản phẩm #${p.id} - ${p.name}?`)) return;
+                                            try {
+                                                await api.admin.deleteProduct(p.id);
+                                                // remove from local list
+                                                setProducts(prev => prev.filter(px => px.id !== p.id));
+                                                alert('Product deleted');
+                                            } catch (err) {
+                                                console.error(err);
+                                                alert('Failed to delete product');
+                                            }
+                                        }}>Delete</Button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
