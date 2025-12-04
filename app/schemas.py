@@ -116,6 +116,7 @@ class OrderResponse(BaseModel):
     id: int
     product_name: str
     price: float
+    renewal_price: float = 0  # Actual price from product for renewal
     account_info: str
     password_info: str
     otp_info: Optional[str]

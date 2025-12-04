@@ -70,15 +70,23 @@ async def buy_product(
     return MessageResponse(message="Product purchased successfully. It will expire on " + expires_at.strftime('%Y-%m-%d %H:%M:%S'))
 
 
-def create_order_response(order: Order, user_email: str = None) -> OrderResponse:
-    """Helper function to create an OrderResponse, calculating is_expired."""
+def create_order_response(order: Order, user_email: str = None, db: Session = None) -> OrderResponse:
+    """Helper function to create an OrderResponse, calculating is_expired and renewal_price."""
     now = datetime.utcnow()
     is_expired = order.expires_at is None or now > order.expires_at
+    
+    # Get actual renewal price from product
+    renewal_price = order.price  # Default to order price
+    if db:
+        product = db.query(Product).filter(Product.id == order.product_id).first()
+        if product:
+            renewal_price = product.price
     
     return OrderResponse(
         id=order.id,
         product_name=order.product_name,
         price=order.price,
+        renewal_price=renewal_price,
         account_info=order.account_info,
         password_info=order.password_info,
         # Only show OTP info if the order is not expired
@@ -98,7 +106,7 @@ async def get_history(
     """Get order history for current user"""
     orders = db.query(Order).filter(Order.user_id == current_user.id).order_by(Order.purchase_time.desc()).all()
     
-    return [create_order_response(o) for o in orders]
+    return [create_order_response(o, db=db) for o in orders]
 
 
 @router.get("/all", response_model=list[OrderResponse])
@@ -118,7 +126,7 @@ async def get_all_orders(
     users = db.query(User).filter(User.id.in_(user_ids)).all()
     user_email_map = {user.id: user.email for user in users}
     
-    return [create_order_response(o, user_email=user_email_map.get(o.user_id)) for o in orders]
+    return [create_order_response(o, user_email=user_email_map.get(o.user_id), db=db) for o in orders]
 
 
 # --- NEW ENDPOINTS ---
@@ -194,7 +202,7 @@ async def admin_assign_product(
     db.commit()
     db.refresh(new_order)
 
-    return create_order_response(new_order, user_email=user.email)
+    return create_order_response(new_order, user_email=user.email, db=db)
 
 
 @router.delete("/admin/revoke/{order_id}", response_model=MessageResponse, tags=["admin_actions"])
@@ -239,5 +247,5 @@ async def admin_update_order(
     # Need user email for the response
     user = db.query(User).filter(User.id == order_to_update.user_id).first()
     
-    return create_order_response(order_to_update, user_email=user.email if user else None)
+    return create_order_response(order_to_update, user_email=user.email if user else None, db=db)
 

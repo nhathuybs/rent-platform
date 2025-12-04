@@ -276,7 +276,7 @@ const History: React.FC = () => {
     useEffect(() => { fetchHistory(); }, [fetchHistory]);
     
     const handleRenew = async (order: Order) => {
-        if (!window.confirm(`Gia hạn "${order.product_name}" với giá ${formatVND(order.price)}?`)) return;
+        if (!window.confirm(`Gia hạn "${order.product_name}" với giá ${formatVND(order.renewal_price)}?`)) return;
         try {
             await api.renewOrder(order.id);
             alert("Gia hạn thành công!");

@@ -36,6 +36,7 @@ export interface Order {
   id: number;
   product_name: string;
   price: number;
+  renewal_price: number;
   account_info: string;
   password_info: string;
   otp_info?: string;
