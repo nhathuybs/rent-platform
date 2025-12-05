@@ -4,8 +4,9 @@ from app.models import User
 from app.auth import get_password_hash
 
 # --- CONFIGURATION FOR THE DEFAULT ADMIN USER ---
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "ledoannhathuy22072006@gmail.com")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "aappqq123")
+# These should be set via environment variables in production!
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@example.com")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "changeme123")
 
 def create_default_admin(db: Session):
     """
