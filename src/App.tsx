@@ -286,19 +286,6 @@ const History: React.FC = () => {
         } catch (e: any) { alert(e.message); }
     };
     
-    // openRevealModal removed — no modal-based reveal needed
-
-    const handleAdminEdit = async (order: Order) => {
-        const newDateStr = prompt("Nhập ngày hết hạn mới (YYYY-MM-DD HH:MM:SS):", new Date(order.expires_at || Date.now()).toISOString().slice(0, 19).replace('T', ' '));
-        if (newDateStr) {
-            try {
-                await api.admin.updateOrder(order.id, { expires_at: new Date(newDateStr).toISOString() });
-                alert("Cập nhật thành công!");
-                fetchHistory();
-            } catch (e: any) { alert(e.message); }
-        }
-    };
-    
     if (loading) return <div className="p-8 text-center">Đang tải...</div>;
 
     return (
