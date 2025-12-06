@@ -182,6 +182,13 @@ async def admin_assign_product(
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail=f"Product with ID {product_id} not found.")
+    
+    # Check if product has stock
+    if product.quantity <= 0:
+        raise HTTPException(status_code=400, detail="Product is out of stock.")
+
+    # Decrease product quantity
+    product.quantity -= 1
 
     duration_days = parse_duration_to_days(product.duration)
     purchase_time = datetime.utcnow()
