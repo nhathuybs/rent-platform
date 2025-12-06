@@ -278,6 +278,7 @@ async def add_balance(
     """
     Add balance to a user's account. Admin access required.
     """
+
     if current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 

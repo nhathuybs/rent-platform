@@ -162,6 +162,8 @@ async def update_product(
     db: Session = Depends(get_db)
 ):
     """Update a product's details (admin only)"""
+    from app.models import Order
+    
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
 
@@ -181,6 +183,20 @@ async def update_product(
     # Update the product object with new data
     for key, value in update_data.items():
         setattr(product, key, value)
+
+    # Also update all active orders with new product info (account, password, otp)
+    # This ensures users see updated credentials in their history
+    now = datetime.utcnow()
+    active_orders = db.query(Order).filter(
+        Order.product_id == product_id,
+        Order.expires_at > now
+    ).all()
+    
+    for order in active_orders:
+        order.product_name = product.name
+        order.account_info = product.account_info
+        order.password_info = product.password_info
+        order.otp_info = product.otp_secret
 
     db.commit()
     db.refresh(product)
